@@ -18,7 +18,7 @@ class ScreenOffService : Service() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action == Intent.ACTION_SCREEN_OFF) {
                 val prefs = PreferencesManager(context)
-                if (prefs.getIsRunning() && prefs.getInterval() == 0) {
+                if (prefs.getIsRunning()) {
                     scope.launch { applyRandomWallpaper(context, prefs) }
                 }
             }

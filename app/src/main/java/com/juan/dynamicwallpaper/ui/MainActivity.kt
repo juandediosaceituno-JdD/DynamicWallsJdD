@@ -286,6 +286,21 @@ fun WallpaperScreen() {
                     }
 
                     Spacer(Modifier.height(12.dp))
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Bloqueo", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                            Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
+                            Spacer(Modifier.width(6.dp))
+                            Text("Inicio", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
                     val scalingOptions = listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno")
                     Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50.dp)).background(Color(0xFF404040))) {
                         scalingOptions.forEach { (key, label) ->

@@ -47,5 +47,6 @@
         </receiver>
 
         <service android:name=".worker.ScreenOffService" android:foregroundServiceType="dataSync" android:exported="false" />
+        <service android:name=".worker.ScreenOffLauncherWorker" android:exported="false" />
     </application>
 </manifest>

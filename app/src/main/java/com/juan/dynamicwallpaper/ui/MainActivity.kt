@@ -314,7 +314,7 @@ fun WallpaperScreen() {
                         Text(formatInterval(intervalMinutes), color = Color(0xFF90CAF9), fontWeight = FontWeight.Medium, fontSize = 15.sp)
                     }
                     Spacer(Modifier.height(8.dp))
-                    val intervals = listOf(5, 10, 15, 30, 60, 120, 240, 480)
+                    val intervals = listOf(0, 15, 30, 60, 120, 240, 480)
                     val sliderIndex = intervals.indexOf(intervalMinutes).takeIf { it >= 0 } ?: 3
                     Slider(
                         value = sliderIndex.toFloat(),

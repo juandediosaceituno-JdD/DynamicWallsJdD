@@ -63,9 +63,23 @@ class ScreenOffService : Service() {
                 }
             }
             uri ?: return
-            val bitmap = context.contentResolver.openInputStream(uri)?.use {
+            val rawBitmap = context.contentResolver.openInputStream(uri)?.use {
                 BitmapFactory.decodeStream(it)
             } ?: return
+            val rotation = context.contentResolver.openInputStream(uri)?.use { stream ->
+                val exif = androidx.exifinterface.media.ExifInterface(stream)
+                when (exif.getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL)) {
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90  -> 90f
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
+                }
+            } ?: 0f
+            val bitmap = if (rotation != 0f) {
+                android.graphics.Bitmap.createBitmap(rawBitmap, 0, 0, rawBitmap.width, rawBitmap.height,
+                    android.graphics.Matrix().apply { postRotate(rotation) }, true)
+            } else rawBitmap
             val wm = android.app.WallpaperManager.getInstance(context)
             val sw = context.resources.displayMetrics.widthPixels
             val sh = context.resources.displayMetrics.heightPixels

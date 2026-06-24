@@ -68,6 +68,13 @@ fun WallpaperScreen() {
     var lockBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
     var showAlbumPicker  by remember { mutableStateOf(false) }
 
+    // Arrancar servicio si ya estaba configurado en modo apagar pantalla
+    LaunchedEffect(Unit) {
+        if (prefs.getIsRunning() && prefs.getInterval() == 0) {
+            context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+        }
+    }
+
     // Cargar wallpapers actuales al iniciar
     LaunchedEffect(Unit) {
         scope.launch(Dispatchers.IO) {
@@ -326,6 +333,11 @@ fun WallpaperScreen() {
                             val idx = it.toInt().coerceIn(0, intervals.size - 1)
                             intervalMinutes = intervals[idx]; prefs.saveInterval(intervals[idx])
                             if (isRunning) {
+                                if (intervals[idx] == 0) {
+                                    context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                                } else {
+                                    context.stopService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                                }
                                 scheduleWallpaperWorker(context, intervals[idx])
                                 val next = System.currentTimeMillis() + intervals[idx] * 60 * 1000L
                                 nextChangeTime = next; prefs.saveNextChangeTime(next)

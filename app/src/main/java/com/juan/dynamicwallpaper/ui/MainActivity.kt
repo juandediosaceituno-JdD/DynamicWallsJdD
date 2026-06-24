@@ -37,8 +37,30 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
+    private val permLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* permisos otorgados, el servicio ya puede mostrar notificación */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Solicitar permisos necesarios
+        val perms = mutableListOf<String>()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                perms.add(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                perms.add(android.Manifest.permission.READ_MEDIA_IMAGES)
+            }
+        } else {
+            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                perms.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+        if (perms.isNotEmpty()) permLauncher.launch(perms.toTypedArray())
         setContent { DynamicWallsTheme { WallpaperScreen() } }
     }
 }

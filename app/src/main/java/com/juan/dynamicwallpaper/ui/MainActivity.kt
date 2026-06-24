@@ -229,8 +229,12 @@ fun WallpaperScreen() {
                                     scheduleWallpaperWorker(context, intervalMinutes)
                                     val next = System.currentTimeMillis() + intervalMinutes * 60 * 1000L
                                     nextChangeTime = next; prefs.saveNextChangeTime(next)
+                                    if (intervalMinutes == 0) {
+                                        context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                                    }
                                 } else {
                                     WorkManager.getInstance(context).cancelUniqueWork("wallpaper_rotation")
+                                    context.stopService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
                                 }
                             },
                             colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF90CAF9))

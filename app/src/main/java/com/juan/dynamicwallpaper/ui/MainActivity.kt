@@ -204,11 +204,7 @@ fun WallpaperScreen() {
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF2C2C2C))) {
-                            thumbnailBitmap?.let {
-                                Image(bitmap = it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            } ?: Icon(Icons.Default.Photo, contentDescription = null, tint = Color(0xFF555555), modifier = Modifier.size(28.dp).align(Alignment.Center))
-                        }
+                        Icon(Icons.Default.Photo, contentDescription = null, tint = Color(0xFF555555), modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(

@@ -9,7 +9,7 @@ import com.juan.dynamicwallpaper.data.PreferencesManager
 
 class UnlockReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        if (intent.action == Intent.ACTION_USER_PRESENT) {
+        if (intent.action == Intent.ACTION_SCREEN_OFF) {
             val prefs = PreferencesManager(context)
             if (prefs.getIsRunning() && prefs.getInterval() == 0) {
                 WorkManager.getInstance(context)

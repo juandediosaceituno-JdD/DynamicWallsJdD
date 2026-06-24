@@ -85,11 +85,8 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
             val bitmap = context.contentResolver.openInputStream(uri)?.use {
                 BitmapFactory.decodeStream(it)
             } ?: return null
-            if (rotation != 0f) {
-                Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, Matrix().apply { postRotate(rotation) }, true)
-            } else {
-                bitmap
-            }
+            // No rotar - respetar orientación original
+            bitmap
         } catch (e: Exception) { null }
     }
 

@@ -92,8 +92,7 @@ class ScreenOffService : Service() {
             canvas.drawBitmap(scaled, (sw - scaledW) / 2f, (sh - scaledH) / 2f, null)
             val applyHome = prefs.getApplyHome()
             val applyLock = prefs.getApplyLock()
-            // Pequeño delay para transición menos brusca
-            kotlinx.coroutines.delay(300)
+            // Sin delay: el cambio ocurre mientras la pantalla está apagada
             when {
                 applyHome && applyLock -> wm.setBitmap(result, null, true,
                     android.app.WallpaperManager.FLAG_SYSTEM or android.app.WallpaperManager.FLAG_LOCK)

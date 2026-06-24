@@ -409,7 +409,7 @@ fun DynamicWallsTheme(content: @Composable () -> Unit) {
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
-fun formatInterval(minutes: Int) = when { minutes == 0 -> "Al desbloquear"; minutes < 60 -> "$minutes min"; minutes == 60 -> "1 hora"; else -> "${minutes / 60} horas" }
+fun formatInterval(minutes: Int) = when { minutes == 0 -> "Al apagar pantalla"; minutes < 60 -> "$minutes min"; minutes == 60 -> "1 hora"; else -> "${minutes / 60} horas" }
 fun getScalingIcon(mode: String) = when (mode) { "FILL" -> "⬛"; "FIT" -> "🔲"; "STRETCH" -> "↔️"; else -> "✖️" }
 
 fun scheduleWallpaperWorker(context: Context, intervalMinutes: Int) {

@@ -67,6 +67,7 @@ fun WallpaperScreen() {
     var homeBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
     var lockBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
     var showAlbumPicker  by remember { mutableStateOf(false) }
+    var showSettings     by remember { mutableStateOf(false) }
 
     // Arrancar servicio si ya estaba configurado en modo apagar pantalla
     LaunchedEffect(Unit) {
@@ -139,6 +140,12 @@ fun WallpaperScreen() {
 
     val dateFormat = SimpleDateFormat("d/M/yyyy\nhh:mm a", Locale.getDefault())
 
+    // Pantalla de ajustes
+    if (showSettings) {
+        SettingsScreen(onBack = { showSettings = false })
+        return
+    }
+
     // Album picker bottom sheet
     if (showAlbumPicker) {
         AlbumPickerSheet(
@@ -165,8 +172,8 @@ fun WallpaperScreen() {
                 title = { Text("DynamicWalls", fontWeight = FontWeight.Medium) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF121212), titleContentColor = Color.White),
                 actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Config", tint = Color.White)
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color.White)
                     }
                 }
             )
@@ -180,13 +187,13 @@ fun WallpaperScreen() {
             Spacer(Modifier.height(4.dp))
 
             // ── SELECTOR DE MODO ──────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
                     listOf("folder" to "Carpeta", "photos" to "Fotos", "album" to "Álbum").forEach { (mode, label) ->
                         Box(
                             modifier = Modifier.weight(1f)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (pickerMode == mode) Color(0xFF3C3C3C) else Color.Transparent)
+                                .background(if (pickerMode == mode) Color(0xFF404040) else Color.Transparent)
                                 .clickable { pickerMode = mode; prefs.savePickerMode(mode) }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
@@ -201,7 +208,7 @@ fun WallpaperScreen() {
             }
 
             // ── CARD FUENTE ACTIVA ────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                         Icon(Icons.Default.Photo, contentDescription = null, tint = Color(0xFF555555), modifier = Modifier.size(28.dp))
@@ -240,7 +247,7 @@ fun WallpaperScreen() {
                                     context.stopService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
                                 }
                             },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF90CAF9))
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8))
                         )
                         IconButton(onClick = {
                             when (pickerMode) {
@@ -256,7 +263,7 @@ fun WallpaperScreen() {
             }
 
             // ── PREVISUALIZACIONES DUALES ─────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
@@ -277,27 +284,15 @@ fun WallpaperScreen() {
                             WallpaperPreview(bitmap = homeBitmap, isActive = applyHome)
                         }
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF90CAF9)))
-                            Spacer(Modifier.width(6.dp)); Text("Bloqueo", color = Color(0xFF9E9E9E), fontSize = 12.sp)
-                        }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF90CAF9)))
-                            Spacer(Modifier.width(6.dp)); Text("Inicio", color = Color(0xFF9E9E9E), fontSize = 12.sp)
-                        }
-                    }
+
                     Spacer(Modifier.height(12.dp))
                     val scalingOptions = listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno")
-                    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50.dp)).background(Color(0xFF2C2C2C))) {
+                    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50.dp)).background(Color(0xFF404040))) {
                         scalingOptions.forEach { (key, label) ->
                             val selected = scalingMode == key
                             Box(
                                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(50.dp))
-                                    .background(if (selected) Color(0xFF3C3C3C) else Color.Transparent)
+                                    .background(if (selected) Color(0xFF404040) else Color.Transparent)
                                     .clickable { scalingMode = key; prefs.saveScalingMode(key) }
                                     .padding(vertical = 10.dp),
                                 contentAlignment = Alignment.Center
@@ -314,11 +309,11 @@ fun WallpaperScreen() {
             }
 
             // ── INTERVALO ─────────────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Cambiar cada", color = Color.White, fontSize = 15.sp)
-                        Text(formatInterval(intervalMinutes), color = Color(0xFF90CAF9), fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                        Text(formatInterval(intervalMinutes), color = Color(0xFF4A9EE8), fontWeight = FontWeight.Medium, fontSize = 15.sp)
                     }
                     Spacer(Modifier.height(8.dp))
                     val intervals = listOf(0, 15, 30, 60, 120, 240, 480)
@@ -341,7 +336,7 @@ fun WallpaperScreen() {
                         },
                         valueRange = 0f..(intervals.size - 1).toFloat(),
                         steps = intervals.size - 2,
-                        colors = SliderDefaults.colors(thumbColor = Color(0xFF90CAF9), activeTrackColor = Color(0xFF90CAF9))
+                        colors = SliderDefaults.colors(thumbColor = Color(0xFF4A9EE8), activeTrackColor = Color(0xFF4A9EE8))
                     )
                 }
             }
@@ -364,7 +359,7 @@ fun WallpaperScreen() {
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF90CAF9))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A9EE8))
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF121212))
                 Spacer(Modifier.width(8.dp))
@@ -390,15 +385,15 @@ fun WallpaperScreen() {
 fun WallpaperPreview(bitmap: ImageBitmap?, isActive: Boolean) {
     Box(
         modifier = Modifier.fillMaxWidth().aspectRatio(9f / 19.5f)
-            .clip(RoundedCornerShape(12.dp)).background(Color(0xFF0D0D0D))
-            .then(if (isActive) Modifier.border(1.dp, Color(0xFF90CAF9).copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                  else Modifier.border(1.dp, Color(0xFF2C2C2C), RoundedCornerShape(12.dp)))
+            .clip(RoundedCornerShape(12.dp)).background(Color(0xFF1A1A1A))
+            .then(if (isActive) Modifier.border(1.dp, Color(0xFF4A9EE8).copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                  else Modifier.border(1.dp, Color(0xFF404040), RoundedCornerShape(12.dp)))
     ) {
         if (bitmap != null) {
             Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(), alpha = if (isActive) 1f else 0.4f)
         } else {
-            Icon(Icons.Default.Wallpaper, contentDescription = null, tint = Color(0xFF3C3C3C),
+            Icon(Icons.Default.Wallpaper, contentDescription = null, tint = Color(0xFF404040),
                 modifier = Modifier.size(32.dp).align(Alignment.Center))
         }
     }
@@ -406,7 +401,7 @@ fun WallpaperPreview(bitmap: ImageBitmap?, isActive: Boolean) {
 
 @Composable
 fun TimestampCard(icon: String, label: String, time: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(12.dp)) {
+    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(12.dp)) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(icon, fontSize = 20.sp); Spacer(Modifier.width(8.dp))
             Column { Text(label, color = Color(0xFF9E9E9E), fontSize = 11.sp); Text(time, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
@@ -416,7 +411,7 @@ fun TimestampCard(icon: String, label: String, time: String, modifier: Modifier 
 
 @Composable
 fun DynamicWallsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF121212), surface = Color(0xFF1E1E1E), primary = Color(0xFF90CAF9)), content = content)
+    MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF121212), surface = Color(0xFF282828), primary = Color(0xFF4A9EE8)), content = content)
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────

@@ -262,61 +262,50 @@ fun WallpaperScreen() {
                 }
             }
 
-            // ── PREVISUALIZACIONES DUALES ─────────────────────────────────
+            // ── PANTALLAS ────────────────────────────────────────────────
             Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Bloqueo", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                if (!applyLock) { Spacer(Modifier.width(4.dp)); Text("(off)", color = Color(0xFF9E9E9E), fontSize = 11.sp) }
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            WallpaperPreview(bitmap = lockBitmap, isActive = applyLock)
+                Column(modifier = Modifier.padding(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LockOpen, contentDescription = null, tint = Color(0xFF4A9EE8), modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Pantalla de bloqueo", color = Color.White, fontSize = 14.sp)
                         }
-                        Spacer(Modifier.width(12.dp))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Inicio", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                if (!applyHome) { Spacer(Modifier.width(4.dp)); Text("(off)", color = Color(0xFF9E9E9E), fontSize = 11.sp) }
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            WallpaperPreview(bitmap = homeBitmap, isActive = applyHome)
-                        }
+                        Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
                     }
-
-                    Spacer(Modifier.height(12.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Bloqueo", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Home, contentDescription = null, tint = Color(0xFF4A9EE8), modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Pantalla de inicio", color = Color.White, fontSize = 14.sp)
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
-                            Spacer(Modifier.width(6.dp))
-                            Text("Inicio", color = Color(0xFF9E9E9E), fontSize = 12.sp)
-                        }
+                        Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
                     }
-                    Spacer(Modifier.height(12.dp))
-                    val scalingOptions = listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno")
-                    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50.dp)).background(Color(0xFF404040))) {
-                        scalingOptions.forEach { (key, label) ->
-                            val selected = scalingMode == key
-                            Box(
-                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(50.dp))
-                                    .background(if (selected) Color(0xFF404040) else Color.Transparent)
-                                    .clickable { scalingMode = key; prefs.saveScalingMode(key) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(getScalingIcon(key), fontSize = 16.sp)
-                                    Text(label, color = if (selected) Color.White else Color(0xFF9E9E9E), fontSize = 10.sp,
-                                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal)
-                                }
+                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
+                    // Scaling modes
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Ajuste", color = Color(0xFF9E9E9E), fontSize = 14.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno").forEach { (key, label) ->
+                                val sel = scalingMode == key
+                                Box(
+                                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                        .background(if (sel) Color(0xFF4A9EE8) else Color(0xFF3C3C3C))
+                                        .clickable { scalingMode = key; prefs.saveScalingMode(key) }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) { Text(label, color = if (sel) Color.White else Color(0xFF9E9E9E), fontSize = 11.sp) }
                             }
                         }
                     }

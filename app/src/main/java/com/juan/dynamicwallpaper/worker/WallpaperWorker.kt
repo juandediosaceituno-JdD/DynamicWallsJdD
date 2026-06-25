@@ -87,9 +87,7 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
             } ?: return null
             if (rotation != 0f) {
                 Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, Matrix().apply { postRotate(rotation) }, true)
-            } else {
-                bitmap
-            }
+            } else bitmap
         } catch (e: Exception) { null }
     }
 

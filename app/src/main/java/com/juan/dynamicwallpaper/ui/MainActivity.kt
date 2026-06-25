@@ -37,8 +37,30 @@ import java.util.*
 import java.util.concurrent.TimeUnit
 
 class MainActivity : ComponentActivity() {
+    private val permLauncher = registerForActivityResult(
+        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
+    ) { /* permisos otorgados, el servicio ya puede mostrar notificación */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Solicitar permisos necesarios
+        val perms = mutableListOf<String>()
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                perms.add(android.Manifest.permission.POST_NOTIFICATIONS)
+            }
+            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                perms.add(android.Manifest.permission.READ_MEDIA_IMAGES)
+            }
+        } else {
+            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) !=
+                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                perms.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
+            }
+        }
+        if (perms.isNotEmpty()) permLauncher.launch(perms.toTypedArray())
         setContent { DynamicWallsTheme { WallpaperScreen() } }
     }
 }
@@ -67,6 +89,14 @@ fun WallpaperScreen() {
     var homeBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
     var lockBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
     var showAlbumPicker  by remember { mutableStateOf(false) }
+    var showSettings     by remember { mutableStateOf(false) }
+
+    // Arrancar servicio si ya estaba configurado en modo apagar pantalla
+    LaunchedEffect(Unit) {
+        if (prefs.getIsRunning() && prefs.getInterval() == 0) {
+            context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+        }
+    }
 
     // Cargar wallpapers actuales al iniciar
     LaunchedEffect(Unit) {
@@ -132,6 +162,12 @@ fun WallpaperScreen() {
 
     val dateFormat = SimpleDateFormat("d/M/yyyy\nhh:mm a", Locale.getDefault())
 
+    // Pantalla de ajustes
+    if (showSettings) {
+        SettingsScreen(onBack = { showSettings = false })
+        return
+    }
+
     // Album picker bottom sheet
     if (showAlbumPicker) {
         AlbumPickerSheet(
@@ -158,8 +194,8 @@ fun WallpaperScreen() {
                 title = { Text("DynamicWalls", fontWeight = FontWeight.Medium) },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF121212), titleContentColor = Color.White),
                 actions = {
-                    IconButton(onClick = { }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Config", tint = Color.White)
+                    IconButton(onClick = { showSettings = true }) {
+                        Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color.White)
                     }
                 }
             )
@@ -173,13 +209,13 @@ fun WallpaperScreen() {
             Spacer(Modifier.height(4.dp))
 
             // ── SELECTOR DE MODO ──────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
                     listOf("folder" to "Carpeta", "photos" to "Fotos", "album" to "Álbum").forEach { (mode, label) ->
                         Box(
                             modifier = Modifier.weight(1f)
                                 .clip(RoundedCornerShape(12.dp))
-                                .background(if (pickerMode == mode) Color(0xFF3C3C3C) else Color.Transparent)
+                                .background(if (pickerMode == mode) Color(0xFF404040) else Color.Transparent)
                                 .clickable { pickerMode = mode; prefs.savePickerMode(mode) }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
@@ -194,14 +230,10 @@ fun WallpaperScreen() {
             }
 
             // ── CARD FUENTE ACTIVA ────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
                 Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Box(modifier = Modifier.size(56.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFF2C2C2C))) {
-                            thumbnailBitmap?.let {
-                                Image(bitmap = it, contentDescription = null, contentScale = ContentScale.Crop, modifier = Modifier.fillMaxSize())
-                            } ?: Icon(Icons.Default.Photo, contentDescription = null, tint = Color(0xFF555555), modifier = Modifier.size(28.dp).align(Alignment.Center))
-                        }
+                        Icon(Icons.Default.Photo, contentDescription = null, tint = Color(0xFF555555), modifier = Modifier.size(28.dp))
                         Spacer(Modifier.width(12.dp))
                         Column {
                             Text(
@@ -229,11 +261,15 @@ fun WallpaperScreen() {
                                     scheduleWallpaperWorker(context, intervalMinutes)
                                     val next = System.currentTimeMillis() + intervalMinutes * 60 * 1000L
                                     nextChangeTime = next; prefs.saveNextChangeTime(next)
+                                    if (intervalMinutes == 0) {
+                                        context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                                    }
                                 } else {
                                     WorkManager.getInstance(context).cancelUniqueWork("wallpaper_rotation")
+                                    context.stopService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
                                 }
                             },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF90CAF9))
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8))
                         )
                         IconButton(onClick = {
                             when (pickerMode) {
@@ -248,58 +284,50 @@ fun WallpaperScreen() {
                 }
             }
 
-            // ── PREVISUALIZACIONES DUALES ─────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Bloqueo", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                if (!applyLock) { Spacer(Modifier.width(4.dp)); Text("(off)", color = Color(0xFF9E9E9E), fontSize = 11.sp) }
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            WallpaperPreview(bitmap = lockBitmap, isActive = applyLock)
+            // ── PANTALLAS ────────────────────────────────────────────────
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
+                Column(modifier = Modifier.padding(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.LockOpen, contentDescription = null, tint = Color(0xFF4A9EE8), modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Pantalla de bloqueo", color = Color.White, fontSize = 14.sp)
                         }
-                        Spacer(Modifier.width(12.dp))
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.weight(1f)) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text("Inicio", color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Medium)
-                                if (!applyHome) { Spacer(Modifier.width(4.dp)); Text("(off)", color = Color(0xFF9E9E9E), fontSize = 11.sp) }
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            WallpaperPreview(bitmap = homeBitmap, isActive = applyHome)
-                        }
+                        Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
                     }
-                    Spacer(Modifier.height(12.dp))
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF90CAF9)))
-                            Spacer(Modifier.width(6.dp)); Text("Bloqueo", color = Color(0xFF9E9E9E), fontSize = 12.sp)
+                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
+                    Row(
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Home, contentDescription = null, tint = Color(0xFF4A9EE8), modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(12.dp))
+                            Text("Pantalla de inicio", color = Color.White, fontSize = 14.sp)
                         }
-                        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                            Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF90CAF9)))
-                            Spacer(Modifier.width(6.dp)); Text("Inicio", color = Color(0xFF9E9E9E), fontSize = 12.sp)
-                        }
+                        Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
                     }
-                    Spacer(Modifier.height(12.dp))
-                    val scalingOptions = listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno")
-                    Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(50.dp)).background(Color(0xFF2C2C2C))) {
-                        scalingOptions.forEach { (key, label) ->
-                            val selected = scalingMode == key
-                            Box(
-                                modifier = Modifier.weight(1f).clip(RoundedCornerShape(50.dp))
-                                    .background(if (selected) Color(0xFF3C3C3C) else Color.Transparent)
-                                    .clickable { scalingMode = key; prefs.saveScalingMode(key) }
-                                    .padding(vertical = 10.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                    Text(getScalingIcon(key), fontSize = 16.sp)
-                                    Text(label, color = if (selected) Color.White else Color(0xFF9E9E9E), fontSize = 10.sp,
-                                        fontWeight = if (selected) FontWeight.Medium else FontWeight.Normal)
-                                }
+                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
+                    // Scaling modes
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Text("Ajuste", color = Color(0xFF9E9E9E), fontSize = 14.sp)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno").forEach { (key, label) ->
+                                val sel = scalingMode == key
+                                Box(
+                                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
+                                        .background(if (sel) Color(0xFF4A9EE8) else Color(0xFF3C3C3C))
+                                        .clickable { scalingMode = key; prefs.saveScalingMode(key) }
+                                        .padding(horizontal = 8.dp, vertical = 4.dp)
+                                ) { Text(label, color = if (sel) Color.White else Color(0xFF9E9E9E), fontSize = 11.sp) }
                             }
                         }
                     }
@@ -307,14 +335,14 @@ fun WallpaperScreen() {
             }
 
             // ── INTERVALO ─────────────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(16.dp)) {
+            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Text("Cambiar cada", color = Color.White, fontSize = 15.sp)
-                        Text(formatInterval(intervalMinutes), color = Color(0xFF90CAF9), fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                        Text(formatInterval(intervalMinutes), color = Color(0xFF4A9EE8), fontWeight = FontWeight.Medium, fontSize = 15.sp)
                     }
                     Spacer(Modifier.height(8.dp))
-                    val intervals = listOf(5, 10, 15, 30, 60, 120, 240, 480, 1440)
+                    val intervals = listOf(0, 15, 30, 60, 120, 240, 480)
                     val sliderIndex = intervals.indexOf(intervalMinutes).takeIf { it >= 0 } ?: 3
                     Slider(
                         value = sliderIndex.toFloat(),
@@ -322,6 +350,11 @@ fun WallpaperScreen() {
                             val idx = it.toInt().coerceIn(0, intervals.size - 1)
                             intervalMinutes = intervals[idx]; prefs.saveInterval(intervals[idx])
                             if (isRunning) {
+                                if (intervals[idx] == 0) {
+                                    context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                                } else {
+                                    context.stopService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                                }
                                 scheduleWallpaperWorker(context, intervals[idx])
                                 val next = System.currentTimeMillis() + intervals[idx] * 60 * 1000L
                                 nextChangeTime = next; prefs.saveNextChangeTime(next)
@@ -329,7 +362,7 @@ fun WallpaperScreen() {
                         },
                         valueRange = 0f..(intervals.size - 1).toFloat(),
                         steps = intervals.size - 2,
-                        colors = SliderDefaults.colors(thumbColor = Color(0xFF90CAF9), activeTrackColor = Color(0xFF90CAF9))
+                        colors = SliderDefaults.colors(thumbColor = Color(0xFF4A9EE8), activeTrackColor = Color(0xFF4A9EE8))
                     )
                 }
             }
@@ -352,7 +385,7 @@ fun WallpaperScreen() {
                 },
                 modifier = Modifier.fillMaxWidth().height(50.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF90CAF9))
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A9EE8))
             ) {
                 Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF121212))
                 Spacer(Modifier.width(8.dp))
@@ -378,15 +411,15 @@ fun WallpaperScreen() {
 fun WallpaperPreview(bitmap: ImageBitmap?, isActive: Boolean) {
     Box(
         modifier = Modifier.fillMaxWidth().aspectRatio(9f / 19.5f)
-            .clip(RoundedCornerShape(12.dp)).background(Color(0xFF0D0D0D))
-            .then(if (isActive) Modifier.border(1.dp, Color(0xFF90CAF9).copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                  else Modifier.border(1.dp, Color(0xFF2C2C2C), RoundedCornerShape(12.dp)))
+            .clip(RoundedCornerShape(12.dp)).background(Color(0xFF1A1A1A))
+            .then(if (isActive) Modifier.border(1.dp, Color(0xFF4A9EE8).copy(alpha = 0.6f), RoundedCornerShape(12.dp))
+                  else Modifier.border(1.dp, Color(0xFF404040), RoundedCornerShape(12.dp)))
     ) {
         if (bitmap != null) {
             Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize(), alpha = if (isActive) 1f else 0.4f)
         } else {
-            Icon(Icons.Default.Wallpaper, contentDescription = null, tint = Color(0xFF3C3C3C),
+            Icon(Icons.Default.Wallpaper, contentDescription = null, tint = Color(0xFF404040),
                 modifier = Modifier.size(32.dp).align(Alignment.Center))
         }
     }
@@ -394,7 +427,7 @@ fun WallpaperPreview(bitmap: ImageBitmap?, isActive: Boolean) {
 
 @Composable
 fun TimestampCard(icon: String, label: String, time: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = Color(0xFF1E1E1E)), shape = RoundedCornerShape(12.dp)) {
+    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(12.dp)) {
         Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(icon, fontSize = 20.sp); Spacer(Modifier.width(8.dp))
             Column { Text(label, color = Color(0xFF9E9E9E), fontSize = 11.sp); Text(time, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
@@ -404,12 +437,12 @@ fun TimestampCard(icon: String, label: String, time: String, modifier: Modifier 
 
 @Composable
 fun DynamicWallsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF121212), surface = Color(0xFF1E1E1E), primary = Color(0xFF90CAF9)), content = content)
+    MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF121212), surface = Color(0xFF282828), primary = Color(0xFF4A9EE8)), content = content)
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
-fun formatInterval(minutes: Int) = when { minutes == 0 -> "Al desbloquear"; minutes < 60 -> "$minutes min"; minutes == 60 -> "1 hora"; minutes == 1440 -> "1 día"; else -> "${minutes / 60} horas" }
+fun formatInterval(minutes: Int) = when { minutes == 0 -> "Al apagar pantalla"; minutes < 60 -> "$minutes min"; minutes == 60 -> "1 hora"; else -> "${minutes / 60} horas" }
 fun getScalingIcon(mode: String) = when (mode) { "FILL" -> "⬛"; "FIT" -> "🔲"; "STRETCH" -> "↔️"; else -> "✖️" }
 
 fun scheduleWallpaperWorker(context: Context, intervalMinutes: Int) {

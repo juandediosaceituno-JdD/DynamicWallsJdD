@@ -74,7 +74,7 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
                 if (uris.isEmpty()) null else uris.random()
             }
             else -> { // folder
-                val folderUriStr = if (useIndependent) prefs.getFolderUriLock() else prefs.getFolderUri()
+                val folderUriStr = (if (useIndependent) prefs.getFolderUriLock() else prefs.getFolderUri())
                     ?: return null
                 val folderUri = Uri.parse(folderUriStr)
                 val docFolder = DocumentFile.fromTreeUri(context, folderUri) ?: return null

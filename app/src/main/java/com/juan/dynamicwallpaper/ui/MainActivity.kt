@@ -89,6 +89,15 @@ fun WallpaperScreen() {
     var homeBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
     var lockBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
     var showAlbumPicker  by remember { mutableStateOf(false) }
+    var lockIndependent  by remember { mutableStateOf(prefs.getLockIndependent()) }
+    var lockPickerMode   by remember { mutableStateOf(prefs.getPickerModeLock()) }
+    var lockFolderUri    by remember { mutableStateOf(prefs.getFolderUriLock()) }
+    var lockFolderName   by remember { mutableStateOf(prefs.getFolderNameLock()) }
+    var lockPhotoCount   by remember { mutableStateOf(prefs.getPhotoCountLock()) }
+    var lockSelectedPhotos by remember { mutableStateOf(prefs.getSelectedPhotosLock()) }
+    var lockBucketId     by remember { mutableStateOf(prefs.getSelectedBucketIdLock()) }
+    var autoAdjust       by remember { mutableStateOf(prefs.getAutoAdjust()) }
+    var showAlbumPickerLock by remember { mutableStateOf(false) }
     var showSettings     by remember { mutableStateOf(false) }
 
     // Arrancar servicio si ya estaba configurado en modo apagar pantalla
@@ -160,6 +169,29 @@ fun WallpaperScreen() {
         }
     }
 
+    val folderPickerLauncherLock = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let {
+            context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            val name = getFolderDisplayName(context, it)
+            val count = countPhotosInFolder(context, it)
+            lockFolderUri = it.toString(); lockFolderName = name; lockPhotoCount = count
+            prefs.saveFolderUriLock(it.toString()); prefs.saveFolderNameLock(name); prefs.savePhotoCountLock(count)
+        }
+    }
+
+    val photoPickerLauncherLock = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+        if (uris.isNotEmpty()) {
+            uris.forEach { uri ->
+                try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                catch (e: Exception) { }
+            }
+            val uriStrings = uris.map { it.toString() }
+            lockSelectedPhotos = uriStrings; lockPhotoCount = uris.size
+            lockFolderName = "\${uris.size} fotos seleccionadas"
+            prefs.saveSelectedPhotosLock(uriStrings); prefs.savePhotoCountLock(uris.size); prefs.saveFolderNameLock(lockFolderName)
+        }
+    }
+
     val dateFormat = SimpleDateFormat("d/M/yyyy\nhh:mm a", Locale.getDefault())
 
     // Pantalla de ajustes
@@ -169,6 +201,21 @@ fun WallpaperScreen() {
     }
 
     // Album picker bottom sheet
+    if (showAlbumPickerLock) {
+        AlbumPickerSheet(
+            onDismiss = { showAlbumPickerLock = false },
+            onAlbumSelected = { album: MediaAlbum ->
+                showAlbumPickerLock = false
+                lockBucketId = album.bucketId
+                lockFolderName = album.name
+                lockPhotoCount = album.photoCount
+                prefs.saveSelectedBucketIdLock(album.bucketId)
+                prefs.saveFolderNameLock(album.name)
+                prefs.savePhotoCountLock(album.photoCount)
+            }
+        )
+    }
+
     if (showAlbumPicker) {
         AlbumPickerSheet(
             onDismiss = { showAlbumPicker = false },

@@ -47,4 +47,30 @@ class PreferencesManager(context: Context) {
     fun getLastChangedTime(): Long     = prefs.getLong("last_changed_time", 0L)
     fun saveNextChangeTime(t: Long)   = prefs.edit().putLong("next_change_time", t).apply()
     fun getNextChangeTime(): Long      = prefs.getLong("next_change_time", 0L)
+    // ── Fuente independiente para pantalla de bloqueo ─────────────────────────
+    fun saveLockIndependent(v: Boolean)       = prefs.edit().putBoolean("lock_independent", v).apply()
+    fun getLockIndependent(): Boolean          = prefs.getBoolean("lock_independent", false)
+
+    fun saveFolderUriLock(uri: String)        = prefs.edit().putString("folder_uri_lock", uri).apply()
+    fun getFolderUriLock(): String?            = prefs.getString("folder_uri_lock", null)
+    fun saveFolderNameLock(name: String)      = prefs.edit().putString("folder_name_lock", name).apply()
+    fun getFolderNameLock(): String            = prefs.getString("folder_name_lock", "") ?: ""
+    fun savePhotoCountLock(count: Int)        = prefs.edit().putInt("photo_count_lock", count).apply()
+    fun getPhotoCountLock(): Int               = prefs.getInt("photo_count_lock", 0)
+
+    fun saveSelectedPhotosLock(uris: List<String>) =
+        prefs.edit().putString("selected_photos_lock", uris.joinToString("|")).apply()
+    fun getSelectedPhotosLock(): List<String> =
+        prefs.getString("selected_photos_lock", "")?.split("|")?.filter { it.isNotBlank() } ?: emptyList()
+
+    fun saveSelectedBucketIdLock(id: String)  = prefs.edit().putString("selected_bucket_id_lock", id).apply()
+    fun getSelectedBucketIdLock(): String?     = prefs.getString("selected_bucket_id_lock", null)
+
+    fun savePickerModeLock(mode: String)      = prefs.edit().putString("picker_mode_lock", mode).apply()
+    fun getPickerModeLock(): String            = prefs.getString("picker_mode_lock", "folder") ?: "folder"
+
+    // ── Autoajuste ────────────────────────────────────────────────────────────
+    fun saveAutoAdjust(v: Boolean)            = prefs.edit().putBoolean("auto_adjust", v).apply()
+    fun getAutoAdjust(): Boolean               = prefs.getBoolean("auto_adjust", false)
+
 }

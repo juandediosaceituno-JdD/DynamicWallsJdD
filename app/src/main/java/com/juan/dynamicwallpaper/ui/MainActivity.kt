@@ -32,33 +32,34 @@ import com.juan.dynamicwallpaper.data.MediaAlbum
 import com.juan.dynamicwallpaper.data.PreferencesManager
 import com.juan.dynamicwallpaper.worker.WallpaperWorker
 import kotlinx.coroutines.*
-import java.text.SimpleDateFormat
-import java.util.*
 import java.util.concurrent.TimeUnit
+
+// ── PALETA ────────────────────────────────────────────────────────────────────
+val BgApp      = Color(0xFF060F0D)
+val BgCard     = Color(0xFF102220)
+val BgSegment  = Color(0xFF0C1A18)
+val Accent     = Color(0xFF2FBFA6)
+val TxtPrimary = Color(0xFFF2F4F7)
+val TxtSecond  = Color(0xFF7A808A)
+val TxtLabel   = Color(0xFF5E646C)
+val Hairline   = Color(0x0FFFFFFF)
 
 class MainActivity : ComponentActivity() {
     private val permLauncher = registerForActivityResult(
-        androidx.activity.result.contract.ActivityResultContracts.RequestMultiplePermissions()
-    ) { /* permisos otorgados, el servicio ya puede mostrar notificación */ }
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) {}
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Solicitar permisos necesarios
         val perms = mutableListOf<String>()
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU) {
-            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) !=
-                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != android.content.pm.PackageManager.PERMISSION_GRANTED)
                 perms.add(android.Manifest.permission.POST_NOTIFICATIONS)
-            }
-            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) !=
-                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (checkSelfPermission(android.Manifest.permission.READ_MEDIA_IMAGES) != android.content.pm.PackageManager.PERMISSION_GRANTED)
                 perms.add(android.Manifest.permission.READ_MEDIA_IMAGES)
-            }
         } else {
-            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) !=
-                android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            if (checkSelfPermission(android.Manifest.permission.READ_EXTERNAL_STORAGE) != android.content.pm.PackageManager.PERMISSION_GRANTED)
                 perms.add(android.Manifest.permission.READ_EXTERNAL_STORAGE)
-            }
         }
         if (perms.isNotEmpty()) permLauncher.launch(perms.toTypedArray())
         setContent { DynamicWallsTheme { WallpaperScreen() } }
@@ -72,43 +73,35 @@ fun WallpaperScreen() {
     val prefs   = remember { PreferencesManager(context) }
     val scope   = rememberCoroutineScope()
 
-    var pickerMode       by remember { mutableStateOf(prefs.getPickerMode()) } // "folder"|"photos"|"album"
-    var selectedFolderUri by remember { mutableStateOf(prefs.getFolderUri()) }
-    var folderName       by remember { mutableStateOf(prefs.getFolderName()) }
-    var photoCount       by remember { mutableStateOf(prefs.getPhotoCount()) }
-    var selectedPhotos   by remember { mutableStateOf(prefs.getSelectedPhotos()) }
-    var selectedBucketId by remember { mutableStateOf(prefs.getSelectedBucketId()) }
-    var intervalMinutes  by remember { mutableStateOf(prefs.getInterval()) }
-    var applyHome        by remember { mutableStateOf(prefs.getApplyHome()) }
-    var applyLock        by remember { mutableStateOf(prefs.getApplyLock()) }
-    var scalingMode      by remember { mutableStateOf(prefs.getScalingMode()) }
-    var isRunning        by remember { mutableStateOf(prefs.getIsRunning()) }
-    var lastChangedTime  by remember { mutableStateOf(prefs.getLastChangedTime()) }
-    var nextChangeTime   by remember { mutableStateOf(prefs.getNextChangeTime()) }
-    var thumbnailBitmap  by remember { mutableStateOf<ImageBitmap?>(null) }
-    var homeBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
-    var lockBitmap       by remember { mutableStateOf<ImageBitmap?>(null) }
-    var showAlbumPicker  by remember { mutableStateOf(false) }
-    var lockIndependent  by remember { mutableStateOf(prefs.getLockIndependent()) }
-    var lockPickerMode   by remember { mutableStateOf(prefs.getPickerModeLock()) }
-    var lockFolderUri    by remember { mutableStateOf(prefs.getFolderUriLock()) }
-    var lockFolderName   by remember { mutableStateOf(prefs.getFolderNameLock()) }
-    var lockPhotoCount   by remember { mutableStateOf(prefs.getPhotoCountLock()) }
+    var pickerMode         by remember { mutableStateOf(prefs.getPickerMode()) }
+    var selectedFolderUri  by remember { mutableStateOf(prefs.getFolderUri()) }
+    var folderName         by remember { mutableStateOf(prefs.getFolderName()) }
+    var photoCount         by remember { mutableStateOf(prefs.getPhotoCount()) }
+    var selectedPhotos     by remember { mutableStateOf(prefs.getSelectedPhotos()) }
+    var selectedBucketId   by remember { mutableStateOf(prefs.getSelectedBucketId()) }
+    var intervalMinutes    by remember { mutableStateOf(prefs.getInterval()) }
+    var applyHome          by remember { mutableStateOf(prefs.getApplyHome()) }
+    var applyLock          by remember { mutableStateOf(prefs.getApplyLock()) }
+    var scalingMode        by remember { mutableStateOf(prefs.getScalingMode()) }
+    var isRunning          by remember { mutableStateOf(prefs.getIsRunning()) }
+    var homeBitmap         by remember { mutableStateOf<ImageBitmap?>(null) }
+    var lockBitmap         by remember { mutableStateOf<ImageBitmap?>(null) }
+    var showAlbumPicker    by remember { mutableStateOf(false) }
+    var lockIndependent    by remember { mutableStateOf(prefs.getLockIndependent()) }
+    var lockPickerMode     by remember { mutableStateOf(prefs.getPickerModeLock()) }
+    var lockFolderUri      by remember { mutableStateOf(prefs.getFolderUriLock()) }
+    var lockFolderName     by remember { mutableStateOf(prefs.getFolderNameLock()) }
+    var lockPhotoCount     by remember { mutableStateOf(prefs.getPhotoCountLock()) }
     var lockSelectedPhotos by remember { mutableStateOf(prefs.getSelectedPhotosLock()) }
-    var lockBucketId     by remember { mutableStateOf(prefs.getSelectedBucketIdLock()) }
-    var autoAdjust       by remember { mutableStateOf(prefs.getAutoAdjust()) }
+    var lockBucketId       by remember { mutableStateOf(prefs.getSelectedBucketIdLock()) }
+    var autoAdjust         by remember { mutableStateOf(prefs.getAutoAdjust()) }
     var showAlbumPickerLock by remember { mutableStateOf(false) }
-    var showSettings     by remember { mutableStateOf(false) }
+    var showSettings       by remember { mutableStateOf(false) }
 
-    // Arrancar servicio si ya estaba configurado en modo apagar pantalla
+    // Cargar wallpapers actuales
     LaunchedEffect(Unit) {
-        if (prefs.getIsRunning() && prefs.getInterval() == 0) {
-            context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
-        }
-    }
-
-    // Cargar wallpapers actuales al iniciar
-    LaunchedEffect(Unit) {
+        if (prefs.getIsRunning() && prefs.getInterval() == 0)
+            context.startForegroundService(Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
         scope.launch(Dispatchers.IO) {
             val wm = WallpaperManager.getInstance(context)
             val homeDrawable = try { wm.drawable } catch (e: Exception) { null }
@@ -117,8 +110,7 @@ fun WallpaperScreen() {
                 if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N)
                     wm.getWallpaperFile(WallpaperManager.FLAG_LOCK)?.let { pfd ->
                         android.graphics.drawable.Drawable.createFromStream(
-                            android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd), null
-                        )
+                            android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd), null)
                     } else null
             } catch (e: Exception) { null }
             val lockBmp = (lockDrawable as? BitmapDrawable)?.bitmap ?: drawableToBitmap(lockDrawable) ?: homeBmp
@@ -127,367 +119,293 @@ fun WallpaperScreen() {
                 lockBitmap = lockBmp?.asImageBitmap()
             }
         }
-        scope.launch(Dispatchers.IO) {
-            val bmp = when (pickerMode) {
-                "photos" -> selectedPhotos.firstOrNull()?.let { loadBitmapFromUri(context, Uri.parse(it)) }
-                "album"  -> null // se carga al seleccionar álbum
-                else     -> selectedFolderUri?.let { loadFolderThumbnail(context, it) }
-            }
-            withContext(Dispatchers.Main) { thumbnailBitmap = bmp?.asImageBitmap() }
-        }
     }
 
     // Pickers
     val folderPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let {
             context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            val name = getFolderDisplayName(context, it)
-            val count = countPhotosInFolder(context, it)
+            val name = getFolderDisplayName(context, it); val count = countPhotosInFolder(context, it)
             selectedFolderUri = it.toString(); folderName = name; photoCount = count
             prefs.saveFolderUri(it.toString()); prefs.saveFolderName(name); prefs.savePhotoCount(count)
-            scope.launch(Dispatchers.IO) {
-                val bmp = loadFolderThumbnail(context, it.toString())
-                withContext(Dispatchers.Main) { thumbnailBitmap = bmp?.asImageBitmap() }
-            }
         }
     }
-
     val photoPickerLauncher = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) {
-            uris.forEach { uri ->
-                try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                catch (e: Exception) { }
-            }
+            uris.forEach { uri -> try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: Exception) {} }
             val uriStrings = uris.map { it.toString() }
-            selectedPhotos = uriStrings; photoCount = uris.size
-            folderName = "${uris.size} fotos seleccionadas"
+            selectedPhotos = uriStrings; photoCount = uris.size; folderName = "${uris.size} fotos seleccionadas"
             prefs.saveSelectedPhotos(uriStrings); prefs.savePhotoCount(uris.size); prefs.saveFolderName(folderName)
-            scope.launch(Dispatchers.IO) {
-                val bmp = loadBitmapFromUri(context, uris.first())
-                withContext(Dispatchers.Main) { thumbnailBitmap = bmp?.asImageBitmap() }
-            }
         }
     }
-
     val folderPickerLauncherLock = rememberLauncherForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
         uri?.let {
             context.contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            val name = getFolderDisplayName(context, it)
-            val count = countPhotosInFolder(context, it)
+            val name = getFolderDisplayName(context, it); val count = countPhotosInFolder(context, it)
             lockFolderUri = it.toString(); lockFolderName = name; lockPhotoCount = count
             prefs.saveFolderUriLock(it.toString()); prefs.saveFolderNameLock(name); prefs.savePhotoCountLock(count)
         }
     }
-
     val photoPickerLauncherLock = rememberLauncherForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
         if (uris.isNotEmpty()) {
-            uris.forEach { uri ->
-                try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                catch (e: Exception) { }
-            }
+            uris.forEach { uri -> try { context.contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) } catch (e: Exception) {} }
             val uriStrings = uris.map { it.toString() }
-            lockSelectedPhotos = uriStrings; lockPhotoCount = uris.size
-            lockFolderName = "\${uris.size} fotos seleccionadas"
+            lockSelectedPhotos = uriStrings; lockPhotoCount = uris.size; lockFolderName = "${uris.size} fotos"
             prefs.saveSelectedPhotosLock(uriStrings); prefs.savePhotoCountLock(uris.size); prefs.saveFolderNameLock(lockFolderName)
         }
     }
 
-    val dateFormat = SimpleDateFormat("d/M/yyyy\nhh:mm a", Locale.getDefault())
+    if (showSettings) { SettingsScreen(onBack = { showSettings = false }); return }
 
-    // Pantalla de ajustes
-    if (showSettings) {
-        SettingsScreen(onBack = { showSettings = false })
-        return
-    }
-
-    // Album picker bottom sheet
     if (showAlbumPickerLock) {
-        AlbumPickerSheet(
-            onDismiss = { showAlbumPickerLock = false },
-            onAlbumSelected = { album: MediaAlbum ->
-                showAlbumPickerLock = false
-                lockBucketId = album.bucketId
-                lockFolderName = album.name
-                lockPhotoCount = album.photoCount
-                prefs.saveSelectedBucketIdLock(album.bucketId)
-                prefs.saveFolderNameLock(album.name)
-                prefs.savePhotoCountLock(album.photoCount)
-            }
-        )
+        AlbumPickerSheet(onDismiss = { showAlbumPickerLock = false }, onAlbumSelected = { album: MediaAlbum ->
+            showAlbumPickerLock = false; lockBucketId = album.bucketId; lockFolderName = album.name; lockPhotoCount = album.photoCount
+            prefs.saveSelectedBucketIdLock(album.bucketId); prefs.saveFolderNameLock(album.name); prefs.savePhotoCountLock(album.photoCount)
+        })
     }
-
     if (showAlbumPicker) {
-        AlbumPickerSheet(
-            onDismiss = { showAlbumPicker = false },
-            onAlbumSelected = { album: MediaAlbum ->
-                showAlbumPicker = false
-                selectedBucketId = album.bucketId
-                folderName = album.name
-                photoCount = album.photoCount
-                prefs.saveSelectedBucketId(album.bucketId)
-                prefs.saveFolderName(album.name)
-                prefs.savePhotoCount(album.photoCount)
-                scope.launch(Dispatchers.IO) {
-                    val bmp = loadBitmapFromUri(context, album.coverUri)
-                    withContext(Dispatchers.Main) { thumbnailBitmap = bmp?.asImageBitmap() }
-                }
+        AlbumPickerSheet(onDismiss = { showAlbumPicker = false }, onAlbumSelected = { album: MediaAlbum ->
+            showAlbumPicker = false; selectedBucketId = album.bucketId; folderName = album.name; photoCount = album.photoCount
+            prefs.saveSelectedBucketId(album.bucketId); prefs.saveFolderName(album.name); prefs.savePhotoCount(album.photoCount)
+            scope.launch(Dispatchers.IO) {
+                val bmp = loadBitmapFromUri(context, album.coverUri)
+                withContext(Dispatchers.Main) { }
             }
-        )
+        })
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("DynamicWalls", fontWeight = FontWeight.Medium) },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color(0xFF121212), titleContentColor = Color.White),
-                actions = {
-                    IconButton(onClick = { showSettings = true }) {
-                        Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = Color.White)
-                    }
-                }
-            )
-        },
-        containerColor = Color(0xFF121212)
-    ) { padding ->
+    Box(modifier = Modifier.fillMaxSize().background(BgApp)) {
         Column(
-            modifier = Modifier.padding(padding).fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(bottom = 88.dp)
         ) {
-            Spacer(Modifier.height(4.dp))
+            // ── HEADER ────────────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 20.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column {
+                    Text("DynamicWalls", color = TxtPrimary, fontSize = 24.sp, fontWeight = FontWeight.ExtraBold)
+                    Text("Fondos que cambian solos", color = TxtSecond, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                }
+                Box(
+                    modifier = Modifier.size(44.dp).clip(RoundedCornerShape(12.dp)).background(BgCard).clickable { showSettings = true },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Settings, contentDescription = "Ajustes", tint = TxtSecond, modifier = Modifier.size(20.dp))
+                }
+            }
 
-            // ── SELECTOR DE MODO ──────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth().padding(4.dp)) {
+            // ── PREVIEWS ──────────────────────────────────────────────────
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                PhonePreview(label = "Bloqueo", bitmap = lockBitmap, isActive = applyLock, modifier = Modifier.weight(1f))
+                PhonePreview(label = "Inicio",  bitmap = homeBitmap, isActive = applyHome, modifier = Modifier.weight(1f))
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            // ── SECCIÓN FUENTE ────────────────────────────────────────────
+            SectionLabel("FUENTE")
+            DwCard {
+                // Segmentado Carpeta/Fotos/Álbum
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(4.dp).clip(RoundedCornerShape(10.dp)).background(BgSegment)
+                ) {
                     listOf("folder" to "Carpeta", "photos" to "Fotos", "album" to "Álbum").forEach { (mode, label) ->
                         Box(
                             modifier = Modifier.weight(1f)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(if (pickerMode == mode) Color(0xFF404040) else Color.Transparent)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (pickerMode == mode) Accent else Color.Transparent)
                                 .clickable { pickerMode = mode; prefs.savePickerMode(mode) }
                                 .padding(vertical = 10.dp),
                             contentAlignment = Alignment.Center
                         ) {
                             Text(label,
-                                color = if (pickerMode == mode) Color.White else Color(0xFF9E9E9E),
-                                fontWeight = if (pickerMode == mode) FontWeight.Medium else FontWeight.Normal,
-                                fontSize = 14.sp)
+                                color = if (pickerMode == mode) Color.Black else TxtSecond,
+                                fontWeight = if (pickerMode == mode) FontWeight.Bold else FontWeight.Medium,
+                                fontSize = 13.sp)
+                        }
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                // Fuente activa
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.size(40.dp).clip(RoundedCornerShape(10.dp)).background(BgSegment), contentAlignment = Alignment.Center) {
+                        Icon(Icons.Default.Photo, contentDescription = null, tint = Accent, modifier = Modifier.size(20.dp))
+                    }
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            if (pickerMode == "album" && folderName.isNotEmpty())
+                                Text("★ ", color = Accent, fontSize = 13.sp, fontWeight = FontWeight.Bold)
+                            Text(
+                                text = folderName.ifEmpty { when (pickerMode) { "photos" -> "Sin fotos"; "album" -> "Sin álbum"; else -> "Sin carpeta" } },
+                                color = TxtPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp
+                            )
+                        }
+                        Text(
+                            text = if (photoCount > 0) "$photoCount fotos" else "Toca para seleccionar",
+                            color = TxtSecond, fontSize = 12.sp
+                        )
+                    }
+                    Switch(
+                        checked = isRunning,
+                        onCheckedChange = { running ->
+                            isRunning = running; prefs.saveIsRunning(running)
+                            if (running) {
+                                scheduleWallpaperWorker(context, intervalMinutes)
+                                if (intervalMinutes == 0) context.startForegroundService(Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                            } else {
+                                WorkManager.getInstance(context).cancelUniqueWork("wallpaper_rotation")
+                                context.stopService(Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                            }
+                        },
+                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Accent, uncheckedTrackColor = BgSegment)
+                    )
+                    IconButton(onClick = {
+                        when (pickerMode) { "photos" -> photoPickerLauncher.launch(arrayOf("image/*")); "album" -> showAlbumPicker = true; else -> folderPickerLauncher.launch(null) }
+                    }) {
+                        Icon(Icons.Default.ExpandMore, contentDescription = "Seleccionar", tint = TxtSecond)
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(16.dp))
+
+            // ── SECCIÓN APLICAR EN ────────────────────────────────────────
+            SectionLabel("APLICAR EN")
+            DwCard {
+                DwRow(icon = Icons.Default.LockOpen, label = "Pantalla de bloqueo") {
+                    Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
+                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Accent, uncheckedTrackColor = BgSegment))
+                }
+                DwDivider()
+                DwRow(icon = Icons.Default.Home, label = "Pantalla de inicio") {
+                    Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
+                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Accent, uncheckedTrackColor = BgSegment))
+                }
+                if (applyLock) {
+                    DwDivider()
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("Fuente independiente", color = TxtPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Fotos distintas en bloqueo", color = TxtSecond, fontSize = 12.sp)
+                        }
+                        Switch(checked = lockIndependent, onCheckedChange = { lockIndependent = it; prefs.saveLockIndependent(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Accent, uncheckedTrackColor = BgSegment))
+                    }
+                    if (lockIndependent) {
+                        Column(modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) {
+                            Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BgSegment)) {
+                                listOf("folder" to "Carpeta", "photos" to "Fotos", "album" to "Álbum").forEach { (mode, label) ->
+                                    Box(
+                                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                                            .background(if (lockPickerMode == mode) Accent else Color.Transparent)
+                                            .clickable { lockPickerMode = mode; prefs.savePickerModeLock(mode) }
+                                            .padding(vertical = 8.dp),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(label, color = if (lockPickerMode == mode) Color.Black else TxtSecond,
+                                            fontSize = 12.sp, fontWeight = if (lockPickerMode == mode) FontWeight.Bold else FontWeight.Medium)
+                                    }
+                                }
+                            }
+                            Spacer(Modifier.height(8.dp))
+                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween) {
+                                Text(text = lockFolderName.ifEmpty { "Sin fuente seleccionada" }, color = TxtSecond, fontSize = 12.sp, modifier = Modifier.weight(1f))
+                                IconButton(onClick = {
+                                    when (lockPickerMode) { "photos" -> photoPickerLauncherLock.launch(arrayOf("image/*")); "album" -> showAlbumPickerLock = true; else -> folderPickerLauncherLock.launch(null) }
+                                }) { Icon(Icons.Default.ExpandMore, contentDescription = null, tint = TxtSecond) }
+                            }
                         }
                     }
                 }
             }
 
-            // ── CARD FUENTE ACTIVA ────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
-                Row(modifier = Modifier.fillMaxWidth().padding(12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
-                        Icon(Icons.Default.Photo, contentDescription = null, tint = Color(0xFF555555), modifier = Modifier.size(28.dp))
+            Spacer(Modifier.height(16.dp))
+
+            // ── SECCIÓN AJUSTE ────────────────────────────────────────────
+            SectionLabel("AJUSTE")
+            DwCard {
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno").forEach { (key, label) ->
+                        val sel = scalingMode == key
+                        Box(
+                            modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
+                                .background(if (sel) Accent else BgSegment)
+                                .clickable { scalingMode = key; prefs.saveScalingMode(key) }
+                                .padding(vertical = 8.dp),
+                            contentAlignment = Alignment.Center
+                        ) { Text(label, color = if (sel) Color.Black else TxtSecond, fontSize = 11.sp, fontWeight = if (sel) FontWeight.Bold else FontWeight.Medium) }
+                    }
+                }
+                DwDivider()
+                Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(BgSegment), contentAlignment = Alignment.Center) {
+                            Icon(Icons.Default.AutoFixHigh, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
+                        }
                         Spacer(Modifier.width(12.dp))
                         Column {
-                            Text(
-                                text = folderName.ifEmpty {
-                                    when (pickerMode) {
-                                        "photos" -> "Sin fotos seleccionadas"
-                                        "album"  -> "Sin álbum seleccionado"
-                                        else     -> "Sin carpeta"
-                                    }
-                                },
-                                color = Color.White, fontWeight = FontWeight.Medium, fontSize = 15.sp
-                            )
-                            Text(
-                                text = if (photoCount > 0) "$photoCount fotos" else "Toca ▾ para seleccionar",
-                                color = Color(0xFF9E9E9E), fontSize = 13.sp
-                            )
+                            Text("Autoajuste", color = TxtPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Brillo y encuadre automático", color = TxtSecond, fontSize = 12.sp)
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Switch(
-                            checked = isRunning,
-                            onCheckedChange = { running ->
-                                isRunning = running; prefs.saveIsRunning(running)
-                                if (running) {
-                                    scheduleWallpaperWorker(context, intervalMinutes)
-                                    val next = System.currentTimeMillis() + intervalMinutes * 60 * 1000L
-                                    nextChangeTime = next; prefs.saveNextChangeTime(next)
-                                    if (intervalMinutes == 0) {
-                                        context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
-                                    }
-                                } else {
-                                    WorkManager.getInstance(context).cancelUniqueWork("wallpaper_rotation")
-                                    context.stopService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
-                                }
-                            },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8))
-                        )
-                        IconButton(onClick = {
-                            when (pickerMode) {
-                                "photos" -> photoPickerLauncher.launch(arrayOf("image/*"))
-                                "album"  -> showAlbumPicker = true
-                                else     -> folderPickerLauncher.launch(null)
-                            }
-                        }) {
-                            Icon(Icons.Default.ExpandMore, contentDescription = "Seleccionar", tint = Color(0xFF9E9E9E))
-                        }
-                    }
+                    Switch(checked = autoAdjust, onCheckedChange = { autoAdjust = it; prefs.saveAutoAdjust(it) },
+                        colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Accent, uncheckedTrackColor = BgSegment))
                 }
             }
 
-            // ── PANTALLAS ────────────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(4.dp)) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.LockOpen, contentDescription = null, tint = Color(0xFF4A9EE8), modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text("Pantalla de bloqueo", color = Color.White, fontSize = 14.sp)
-                        }
-                        Switch(checked = applyLock, onCheckedChange = { applyLock = it; prefs.saveApplyLock(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
-                    }
-                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Home, contentDescription = null, tint = Color(0xFF4A9EE8), modifier = Modifier.size(20.dp))
-                            Spacer(Modifier.width(12.dp))
-                            Text("Pantalla de inicio", color = Color.White, fontSize = 14.sp)
-                        }
-                        Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
-                    }
-                    // Fuente independiente bloqueo
-                    if (applyLock) {
-                        Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
-                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                            Column {
-                                Text("Fuente independiente", color = Color.White, fontSize = 14.sp)
-                                Text("Fotos distintas en bloqueo", color = Color(0xFF9E9E9E), fontSize = 11.sp)
-                            }
-                            Switch(
-                                checked = lockIndependent,
-                                onCheckedChange = { lockIndependent = it; prefs.saveLockIndependent(it) },
-                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8))
-                            )
-                        }
-                        if (lockIndependent) {
-                            Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp)) {
-                                Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFF3C3C3C))) {
-                                    listOf("folder" to "Carpeta", "photos" to "Fotos", "album" to "Álbum").forEach { (mode, label) ->
-                                        Box(
-                                            modifier = Modifier.weight(1f)
-                                                .clip(RoundedCornerShape(8.dp))
-                                                .background(if (lockPickerMode == mode) Color(0xFF4A9EE8) else Color.Transparent)
-                                                .clickable { lockPickerMode = mode; prefs.savePickerModeLock(mode) }
-                                                .padding(vertical = 8.dp),
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            Text(label,
-                                                color = if (lockPickerMode == mode) Color.White else Color(0xFF9E9E9E),
-                                                fontSize = 12.sp,
-                                                fontWeight = if (lockPickerMode == mode) FontWeight.Medium else FontWeight.Normal)
-                                        }
-                                    }
-                                }
-                                Spacer(Modifier.height(8.dp))
-                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween) {
-                                    Text(
-                                        text = lockFolderName.ifEmpty { "Sin fuente seleccionada" },
-                                        color = Color(0xFF9E9E9E), fontSize = 12.sp, modifier = Modifier.weight(1f)
-                                    )
-                                    IconButton(onClick = {
-                                        when (lockPickerMode) {
-                                            "photos" -> photoPickerLauncherLock.launch(arrayOf("image/*"))
-                                            "album"  -> showAlbumPickerLock = true
-                                            else     -> folderPickerLauncherLock.launch(null)
-                                        }
-                                    }) {
-                                        Icon(Icons.Default.ExpandMore, contentDescription = "Seleccionar fuente bloqueo", tint = Color(0xFF9E9E9E))
-                                    }
-                                }
-                            }
-                        }
-                    }
-                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
-                    // Scaling modes
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Ajuste", color = Color(0xFF9E9E9E), fontSize = 14.sp)
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            listOf("FILL" to "Llenar", "FIT" to "Adaptar", "STRETCH" to "Estirar", "NONE" to "Ninguno").forEach { (key, label) ->
-                                val sel = scalingMode == key
-                                Box(
-                                    modifier = Modifier.clip(RoundedCornerShape(8.dp))
-                                        .background(if (sel) Color(0xFF4A9EE8) else Color(0xFF3C3C3C))
-                                        .clickable { scalingMode = key; prefs.saveScalingMode(key) }
-                                        .padding(horizontal = 8.dp, vertical = 4.dp)
-                                ) { Text(label, color = if (sel) Color.White else Color(0xFF9E9E9E), fontSize = 11.sp) }
-                            }
-                        }
-                    }
-                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
-                    // Autoajuste
-                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Column {
-                            Text("Autoajuste", color = Color.White, fontSize = 14.sp)
-                            Text("Brillo y encuadre automático", color = Color(0xFF9E9E9E), fontSize = 11.sp)
-                        }
-                        Switch(
-                            checked = autoAdjust,
-                            onCheckedChange = { autoAdjust = it; prefs.saveAutoAdjust(it) },
-                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8))
-                        )
-                    }
-                }
-            }
+            Spacer(Modifier.height(16.dp))
 
-            // ── INTERVALO ─────────────────────────────────────────────────
-            Card(modifier = Modifier.fillMaxWidth(), colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(16.dp)) {
-                Column(modifier = Modifier.padding(16.dp)) {
+            // ── SECCIÓN FRECUENCIA ────────────────────────────────────────
+            SectionLabel("FRECUENCIA")
+            DwCard {
+                val intervals = listOf(0, 15, 30, 60, 180, 360, 720, 1440)
+                val sliderIndex = intervals.indexOf(intervalMinutes).takeIf { it >= 0 } ?: 2
+                Column(modifier = Modifier.padding(horizontal = 16.dp, vertical = 12.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Cambiar cada", color = Color.White, fontSize = 15.sp)
-                        Text(formatInterval(intervalMinutes), color = Color(0xFF4A9EE8), fontWeight = FontWeight.Medium, fontSize = 15.sp)
+                        Text("Cambiar cada", color = TxtSecond, fontSize = 13.sp, fontWeight = FontWeight.Medium)
+                        Text(formatInterval(intervalMinutes), color = Accent, fontWeight = FontWeight.Bold, fontSize = 14.sp)
                     }
-                    Spacer(Modifier.height(8.dp))
-                    val intervals = listOf(0, 15, 30, 60, 120, 240, 480, 1440)
-                    val sliderIndex = intervals.indexOf(intervalMinutes).takeIf { it >= 0 } ?: 3
                     Slider(
                         value = sliderIndex.toFloat(),
                         onValueChange = {
                             val idx = it.toInt().coerceIn(0, intervals.size - 1)
                             intervalMinutes = intervals[idx]; prefs.saveInterval(intervals[idx])
                             if (isRunning) {
-                                if (intervals[idx] == 0) {
-                                    context.startForegroundService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
-                                } else {
-                                    context.stopService(android.content.Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
-                                }
+                                if (intervals[idx] == 0) context.startForegroundService(Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
+                                else context.stopService(Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
                                 scheduleWallpaperWorker(context, intervals[idx])
-                                val next = System.currentTimeMillis() + intervals[idx] * 60 * 1000L
-                                nextChangeTime = next; prefs.saveNextChangeTime(next)
                             }
                         },
                         valueRange = 0f..(intervals.size - 1).toFloat(),
                         steps = intervals.size - 2,
-                        colors = SliderDefaults.colors(thumbColor = Color(0xFF4A9EE8), activeTrackColor = Color(0xFF4A9EE8))
+                        colors = SliderDefaults.colors(thumbColor = Accent, activeTrackColor = Accent, inactiveTrackColor = BgSegment)
                     )
                 }
             }
 
-            // ── CAMBIAR AHORA ─────────────────────────────────────────────
+            Spacer(Modifier.height(8.dp))
+        }
+
+        // ── CTA FIJO ──────────────────────────────────────────────────────
+        Box(
+            modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
+                .background(BgApp.copy(alpha = 0.95f)).padding(horizontal = 20.dp, vertical = 16.dp)
+        ) {
             Button(
                 onClick = {
-                    val now = System.currentTimeMillis()
-                    lastChangedTime = now; nextChangeTime = now + intervalMinutes * 60 * 1000L
-                    prefs.saveLastChangedTime(now); prefs.saveNextChangeTime(nextChangeTime)
                     WorkManager.getInstance(context).enqueue(OneTimeWorkRequestBuilder<WallpaperWorker>().build())
                     scope.launch {
                         delay(2500)
@@ -498,24 +416,14 @@ fun WallpaperScreen() {
                         }
                     }
                 },
-                modifier = Modifier.fillMaxWidth().height(50.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF4A9EE8))
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Accent)
             ) {
-                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color(0xFF121212))
+                Icon(Icons.Default.Refresh, contentDescription = null, tint = Color.Black)
                 Spacer(Modifier.width(8.dp))
-                Text("Cambiar ahora", color = Color(0xFF121212), fontWeight = FontWeight.Medium)
+                Text("Cambiar ahora", color = Color.Black, fontWeight = FontWeight.ExtraBold, fontSize = 15.sp)
             }
-
-            // ── TIMESTAMPS ────────────────────────────────────────────────
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                TimestampCard(icon = "⬅️", label = "Último cambio",
-                    time = if (lastChangedTime > 0) dateFormat.format(Date(lastChangedTime)) else "—", modifier = Modifier.weight(1f))
-                Spacer(Modifier.width(12.dp))
-                TimestampCard(icon = "➡️", label = "Próximo cambio",
-                    time = if (nextChangeTime > 0) dateFormat.format(Date(nextChangeTime)) else "—", modifier = Modifier.weight(1f))
-            }
-            Spacer(Modifier.height(16.dp))
         }
     }
 }
@@ -523,52 +431,84 @@ fun WallpaperScreen() {
 // ── COMPONENTES ───────────────────────────────────────────────────────────────
 
 @Composable
-fun WallpaperPreview(bitmap: ImageBitmap?, isActive: Boolean) {
-    Box(
-        modifier = Modifier.fillMaxWidth().aspectRatio(9f / 19.5f)
-            .clip(RoundedCornerShape(12.dp)).background(Color(0xFF1A1A1A))
-            .then(if (isActive) Modifier.border(1.dp, Color(0xFF4A9EE8).copy(alpha = 0.6f), RoundedCornerShape(12.dp))
-                  else Modifier.border(1.dp, Color(0xFF404040), RoundedCornerShape(12.dp)))
-    ) {
-        if (bitmap != null) {
-            Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop,
-                modifier = Modifier.fillMaxSize(), alpha = if (isActive) 1f else 0.4f)
-        } else {
-            Icon(Icons.Default.Wallpaper, contentDescription = null, tint = Color(0xFF404040),
-                modifier = Modifier.size(32.dp).align(Alignment.Center))
+fun PhonePreview(label: String, bitmap: ImageBitmap?, isActive: Boolean, modifier: Modifier = Modifier) {
+    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(
+            modifier = Modifier.fillMaxWidth().aspectRatio(9f / 19.5f)
+                .clip(RoundedCornerShape(16.dp))
+                .background(BgCard)
+                .then(
+                    if (isActive) Modifier.border(1.5.dp, Accent.copy(alpha = 0.7f), RoundedCornerShape(16.dp))
+                    else Modifier.border(1.dp, Hairline, RoundedCornerShape(16.dp))
+                )
+        ) {
+            if (bitmap != null) {
+                Image(bitmap = bitmap, contentDescription = null, contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize(), alpha = if (isActive) 1f else 0.5f)
+            } else {
+                Icon(Icons.Default.Wallpaper, contentDescription = null, tint = BgSegment,
+                    modifier = Modifier.size(28.dp).align(Alignment.Center))
+            }
         }
+        Spacer(Modifier.height(6.dp))
+        Text(label, color = if (isActive) TxtPrimary else TxtSecond, fontSize = 12.sp, fontWeight = FontWeight.SemiBold)
     }
 }
 
 @Composable
-fun TimestampCard(icon: String, label: String, time: String, modifier: Modifier = Modifier) {
-    Card(modifier = modifier, colors = CardDefaults.cardColors(containerColor = Color(0xFF282828)), shape = RoundedCornerShape(12.dp)) {
-        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text(icon, fontSize = 20.sp); Spacer(Modifier.width(8.dp))
-            Column { Text(label, color = Color(0xFF9E9E9E), fontSize = 11.sp); Text(time, color = Color.White, fontSize = 12.sp, fontWeight = FontWeight.Medium) }
+fun SectionLabel(text: String) {
+    Text(text, color = TxtLabel, fontSize = 11.sp, fontWeight = FontWeight.SemiBold,
+        letterSpacing = 0.8.sp, modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp))
+}
+
+@Composable
+fun DwCard(content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
+        colors = CardDefaults.cardColors(containerColor = BgCard),
+        shape = RoundedCornerShape(16.dp)
+    ) { Column(modifier = Modifier.padding(8.dp), content = content) }
+}
+
+@Composable
+fun DwRow(icon: androidx.compose.ui.graphics.vector.ImageVector, label: String, action: @Composable () -> Unit) {
+    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 4.dp),
+        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Box(modifier = Modifier.size(36.dp).clip(RoundedCornerShape(8.dp)).background(BgSegment), contentAlignment = Alignment.Center) {
+                Icon(icon, contentDescription = null, tint = Accent, modifier = Modifier.size(18.dp))
+            }
+            Spacer(Modifier.width(12.dp))
+            Text(label, color = TxtPrimary, fontSize = 14.sp, fontWeight = FontWeight.Medium)
         }
+        action()
     }
+}
+
+@Composable
+fun DwDivider() {
+    HorizontalDivider(modifier = Modifier.padding(horizontal = 8.dp), color = Hairline, thickness = 0.5.dp)
 }
 
 @Composable
 fun DynamicWallsTheme(content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = darkColorScheme(background = Color(0xFF121212), surface = Color(0xFF282828), primary = Color(0xFF4A9EE8)), content = content)
+    MaterialTheme(colorScheme = darkColorScheme(background = BgApp, surface = BgCard, primary = Accent), content = content)
 }
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
-fun formatInterval(minutes: Int) = when { minutes == 0 -> "Al apagar pantalla"; minutes < 60 -> "$minutes min"; minutes == 60 -> "1 hora"; minutes == 1440 -> "1 día"; else -> "${minutes / 60} horas" }
-fun getScalingIcon(mode: String) = when (mode) { "FILL" -> "⬛"; "FIT" -> "🔲"; "STRETCH" -> "↔️"; else -> "✖️" }
+fun formatInterval(minutes: Int) = when {
+    minutes == 0    -> "Al apagar pantalla"
+    minutes < 60    -> "$minutes min"
+    minutes == 60   -> "1 hora"
+    minutes == 1440 -> "1 día"
+    else            -> "${minutes / 60} horas"
+}
 
 fun scheduleWallpaperWorker(context: Context, intervalMinutes: Int) {
-    if (intervalMinutes == 0) {
-        WorkManager.getInstance(context).cancelUniqueWork("wallpaper_rotation")
-        return
-    }
+    if (intervalMinutes == 0) { WorkManager.getInstance(context).cancelUniqueWork("wallpaper_rotation"); return }
     val safeInterval = maxOf(intervalMinutes.toLong(), 15L)
-    val request = PeriodicWorkRequestBuilder<WallpaperWorker>(safeInterval, TimeUnit.MINUTES)
-        .setConstraints(Constraints.Builder().build())
-        .build()
+    val request = PeriodicWorkRequestBuilder<WallpaperWorker>(safeInterval, TimeUnit.MINUTES).setConstraints(Constraints.Builder().build()).build()
     WorkManager.getInstance(context).enqueueUniquePeriodicWork("wallpaper_rotation", ExistingPeriodicWorkPolicy.REPLACE, request)
 }
 

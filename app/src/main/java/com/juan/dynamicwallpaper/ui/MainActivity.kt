@@ -342,7 +342,7 @@ fun WallpaperScreen() {
                         Text(formatInterval(intervalMinutes), color = Color(0xFF4A9EE8), fontWeight = FontWeight.Medium, fontSize = 15.sp)
                     }
                     Spacer(Modifier.height(8.dp))
-                    val intervals = listOf(0, 15, 30, 60, 120, 240, 480)
+                    val intervals = listOf(0, 15, 30, 60, 120, 240, 480, 1440)
                     val sliderIndex = intervals.indexOf(intervalMinutes).takeIf { it >= 0 } ?: 3
                     Slider(
                         value = sliderIndex.toFloat(),
@@ -442,7 +442,7 @@ fun DynamicWallsTheme(content: @Composable () -> Unit) {
 
 // ── HELPERS ───────────────────────────────────────────────────────────────────
 
-fun formatInterval(minutes: Int) = when { minutes == 0 -> "Al apagar pantalla"; minutes < 60 -> "$minutes min"; minutes == 60 -> "1 hora"; else -> "${minutes / 60} horas" }
+fun formatInterval(minutes: Int) = when { minutes == 0 -> "Al apagar pantalla"; minutes < 60 -> "$minutes min"; minutes == 60 -> "1 hora"; minutes == 1440 -> "1 día"; else -> "${minutes / 60} horas" }
 fun getScalingIcon(mode: String) = when (mode) { "FILL" -> "⬛"; "FIT" -> "🔲"; "STRETCH" -> "↔️"; else -> "✖️" }
 
 fun scheduleWallpaperWorker(context: Context, intervalMinutes: Int) {

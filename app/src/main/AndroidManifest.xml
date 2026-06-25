@@ -51,16 +51,29 @@
         <service android:name=".worker.ScreenOffLauncherWorker" android:exported="false" />
 
         <receiver
-            android:name=".widget.WallpaperWidget"
+            android:name=".widget.WallpaperWidget1x1"
             android:exported="true"
-            android:label="DynamicWalls Widget">
+            android:label="DynamicWalls 1x1">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
                 <action android:name="com.juan.dynamicwallpaper.NEXT_WALLPAPER" />
             </intent-filter>
             <meta-data
                 android:name="android.appwidget.provider"
-                android:resource="@xml/widget_info" />
+                android:resource="@xml/widget_info_1x1" />
+        </receiver>
+
+        <receiver
+            android:name=".widget.WallpaperWidget1x2"
+            android:exported="true"
+            android:label="DynamicWalls 1x2">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.juan.dynamicwallpaper.NEXT_WALLPAPER" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/widget_info_1x2" />
         </receiver>
     </application>
 </manifest>

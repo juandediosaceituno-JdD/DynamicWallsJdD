@@ -361,6 +361,60 @@ fun WallpaperScreen() {
                         Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
                             colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8)))
                     }
+                    // Fuente independiente bloqueo
+                    if (applyLock) {
+                        Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
+                        Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                            Column {
+                                Text("Fuente independiente", color = Color.White, fontSize = 14.sp)
+                                Text("Fotos distintas en bloqueo", color = Color(0xFF9E9E9E), fontSize = 11.sp)
+                            }
+                            Switch(
+                                checked = lockIndependent,
+                                onCheckedChange = { lockIndependent = it; prefs.saveLockIndependent(it) },
+                                colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8))
+                            )
+                        }
+                        if (lockIndependent) {
+                            Column(modifier = Modifier.padding(horizontal = 16.dp).padding(bottom = 12.dp)) {
+                                Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(Color(0xFF3C3C3C))) {
+                                    listOf("folder" to "Carpeta", "photos" to "Fotos", "album" to "Álbum").forEach { (mode, label) ->
+                                        Box(
+                                            modifier = Modifier.weight(1f)
+                                                .clip(RoundedCornerShape(8.dp))
+                                                .background(if (lockPickerMode == mode) Color(0xFF4A9EE8) else Color.Transparent)
+                                                .clickable { lockPickerMode = mode; prefs.savePickerModeLock(mode) }
+                                                .padding(vertical = 8.dp),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Text(label,
+                                                color = if (lockPickerMode == mode) Color.White else Color(0xFF9E9E9E),
+                                                fontSize = 12.sp,
+                                                fontWeight = if (lockPickerMode == mode) FontWeight.Medium else FontWeight.Normal)
+                                        }
+                                    }
+                                }
+                                Spacer(Modifier.height(8.dp))
+                                Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween) {
+                                    Text(
+                                        text = lockFolderName.ifEmpty { "Sin fuente seleccionada" },
+                                        color = Color(0xFF9E9E9E), fontSize = 12.sp, modifier = Modifier.weight(1f)
+                                    )
+                                    IconButton(onClick = {
+                                        when (lockPickerMode) {
+                                            "photos" -> photoPickerLauncherLock.launch(arrayOf("image/*"))
+                                            "album"  -> showAlbumPickerLock = true
+                                            else     -> folderPickerLauncherLock.launch(null)
+                                        }
+                                    }) {
+                                        Icon(Icons.Default.ExpandMore, contentDescription = "Seleccionar fuente bloqueo", tint = Color(0xFF9E9E9E))
+                                    }
+                                }
+                            }
+                        }
+                    }
                     Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
                     // Scaling modes
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
@@ -377,6 +431,20 @@ fun WallpaperScreen() {
                                 ) { Text(label, color = if (sel) Color.White else Color(0xFF9E9E9E), fontSize = 11.sp) }
                             }
                         }
+                    }
+                    Divider(color = Color(0xFF3C3C3C), thickness = 0.5.dp)
+                    // Autoajuste
+                    Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                        Column {
+                            Text("Autoajuste", color = Color.White, fontSize = 14.sp)
+                            Text("Brillo y encuadre automático", color = Color(0xFF9E9E9E), fontSize = 11.sp)
+                        }
+                        Switch(
+                            checked = autoAdjust,
+                            onCheckedChange = { autoAdjust = it; prefs.saveAutoAdjust(it) },
+                            colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Color(0xFF4A9EE8))
+                        )
                     }
                 }
             }

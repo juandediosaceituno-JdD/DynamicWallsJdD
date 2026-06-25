@@ -68,7 +68,7 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
                 if (photos.isEmpty()) null else Uri.parse(photos.random())
             }
             "album" -> {
-                val bucketId = if (useIndependent) prefs.getSelectedBucketIdLock() else prefs.getSelectedBucketId()
+                val bucketId = (if (useIndependent) prefs.getSelectedBucketIdLock() else prefs.getSelectedBucketId())
                     ?: return null
                 val uris = MediaStoreHelper.getPhotosFromAlbum(context, bucketId)
                 if (uris.isEmpty()) null else uris.random()

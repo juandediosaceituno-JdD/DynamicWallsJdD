@@ -115,10 +115,8 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
                 val scale = maxOf(tw.toFloat() / source.width, th.toFloat() / source.height)
                 val sw = (source.width * scale).toInt()
                 val sh = (source.height * scale).toInt()
-                // Smart crop: centrar en zona de interés
-                val focusX = if (autoAdjust) findFocusX(source, sw, tw) else (tw - sw) / 2f
-                val focusY = if (autoAdjust) findFocusY(source, sh, th) else (th - sh) / 2f
-                canvas.drawBitmap(Bitmap.createScaledBitmap(source, sw, sh, true), focusX, focusY, paint)
+                // Centrado simple — sin zoom adicional
+                canvas.drawBitmap(Bitmap.createScaledBitmap(source, sw, sh, true), (tw - sw) / 2f, (th - sh) / 2f, paint)
             }
             "FIT" -> {
                 val scale = minOf(tw.toFloat() / source.width, th.toFloat() / source.height)
@@ -164,42 +162,4 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
         return result
     }
 
-    // ── Smart crop: detectar zona más brillante (punto de interés) ────────────
-    private fun findFocusX(src: Bitmap, scaledW: Int, targetW: Int): Float {
-        if (scaledW <= targetW) return (targetW - scaledW) / 2f
-        val sampleW = minOf(src.width, 32)
-        val sampleH = minOf(src.height, 32)
-        val small = Bitmap.createScaledBitmap(src, sampleW, sampleH, true)
-        var maxBrightness = 0f; var focusCol = sampleW / 2
-        for (x in 0 until sampleW) {
-            var colBrightness = 0f
-            for (y in 0 until sampleH) {
-                val p = small.getPixel(x, y)
-                colBrightness += 0.299f * Color.red(p) + 0.587f * Color.green(p) + 0.114f * Color.blue(p)
-            }
-            if (colBrightness > maxBrightness) { maxBrightness = colBrightness; focusCol = x }
-        }
-        val focusRatio = focusCol.toFloat() / sampleW
-        val idealOffset = -(focusRatio * scaledW - targetW / 2f)
-        return idealOffset.coerceIn((targetW - scaledW).toFloat(), 0f)
-    }
-
-    private fun findFocusY(src: Bitmap, scaledH: Int, targetH: Int): Float {
-        if (scaledH <= targetH) return (targetH - scaledH) / 2f
-        val sampleW = minOf(src.width, 32)
-        val sampleH = minOf(src.height, 32)
-        val small = Bitmap.createScaledBitmap(src, sampleW, sampleH, true)
-        var maxBrightness = 0f; var focusRow = sampleH / 3 // bias hacia arriba (retratos)
-        for (y in 0 until sampleH) {
-            var rowBrightness = 0f
-            for (x in 0 until sampleW) {
-                val p = small.getPixel(x, y)
-                rowBrightness += 0.299f * Color.red(p) + 0.587f * Color.green(p) + 0.114f * Color.blue(p)
-            }
-            if (rowBrightness > maxBrightness) { maxBrightness = rowBrightness; focusRow = y }
-        }
-        val focusRatio = focusRow.toFloat() / sampleH
-        val idealOffset = -(focusRatio * scaledH - targetH / 2f)
-        return idealOffset.coerceIn((targetH - scaledH).toFloat(), 0f)
-    }
 }

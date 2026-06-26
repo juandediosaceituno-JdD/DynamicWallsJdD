@@ -97,20 +97,22 @@ class WallpaperApplyService : Service() {
         }
     }
 
-    private fun loadAndRotateBitmap(uri: Uri): Bitmap? = try {
-        val rotation = contentResolver.openInputStream(uri)?.use { stream ->
-            val exif = ExifInterface(stream)
-            when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
-                ExifInterface.ORIENTATION_ROTATE_90  -> 90f
-                ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                else -> 0f
-            }
-        } ?: 0f
-        val bitmap = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) } ?: return null
-        if (rotation != 0f) Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, Matrix().apply { postRotate(rotation) }, true)
-        else bitmap
-    } catch (e: Exception) { null }
+    private fun loadAndRotateBitmap(uri: Uri): Bitmap? {
+        return try {
+            val rotation = contentResolver.openInputStream(uri)?.use { stream ->
+                val exif = ExifInterface(stream)
+                when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
+                    ExifInterface.ORIENTATION_ROTATE_90  -> 90f
+                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+                    else -> 0f
+                }
+            } ?: 0f
+            val bitmap = contentResolver.openInputStream(uri)?.use { BitmapFactory.decodeStream(it) } ?: return null
+            if (rotation != 0f) Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, Matrix().apply { postRotate(rotation) }, true)
+            else bitmap
+        } catch (e: Exception) { null }
+    }
 
     private fun scaleBitmap(src: Bitmap, tw: Int, th: Int, mode: String, autoAdjust: Boolean): Bitmap {
         val source = if (autoAdjust) autoAdjustBitmap(src) else src

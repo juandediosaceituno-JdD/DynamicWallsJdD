@@ -406,13 +406,17 @@ fun WallpaperScreen() {
         ) {
             Button(
                 onClick = {
-                    WorkManager.getInstance(context).enqueue(OneTimeWorkRequestBuilder<WallpaperWorker>().build())
-                    scope.launch {
-                        delay(2500)
-                        withContext(Dispatchers.IO) {
-                            val wm = WallpaperManager.getInstance(context)
-                            val bmp = drawableToBitmap(wm.drawable)
-                            withContext(Dispatchers.Main) { homeBitmap = bmp?.asImageBitmap(); lockBitmap = bmp?.asImageBitmap() }
+                    scope.launch(Dispatchers.IO) {
+                        WallpaperWorker.applyWallpapers(context)
+                        // Recargar previews desde última URI guardada
+                        val prefs2 = PreferencesManager(context)
+                        val homeUri = prefs2.getLastHomeUri()
+                        val lockUri = prefs2.getLastLockUri()
+                        val homeBmp = homeUri?.let { loadBitmapFromUri(context, Uri.parse(it)) }
+                        val lockBmp = lockUri?.let { loadBitmapFromUri(context, Uri.parse(it)) }
+                        withContext(Dispatchers.Main) {
+                            homeBmp?.let { homeBitmap = it.asImageBitmap() }
+                            lockBmp?.let { lockBitmap = it.asImageBitmap() }
                         }
                     }
                 },

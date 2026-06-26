@@ -41,19 +41,22 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
             val sw = context.resources.displayMetrics.widthPixels
             val sh = context.resources.displayMetrics.heightPixels
 
+            var homeUri: Uri? = null
+
             if (applyHome) {
-                val uri = pickImage(context, prefs, "home") ?: return
-                val bmp = loadAndRotateBitmap(context, uri) ?: return
+                homeUri = pickImage(context, prefs, "home") ?: return
+                val bmp = loadAndRotateBitmap(context, homeUri) ?: return
                 val scaled = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
                 wm.setBitmap(scaled, null, true, WallpaperManager.FLAG_SYSTEM)
-                prefs.saveLastHomeUri(uri.toString())
-                Log.d("WallpaperWorker", "Home OK: $uri")
+                prefs.saveLastHomeUri(homeUri.toString())
+                Log.d("WallpaperWorker", "Home OK: $homeUri")
             }
 
             if (applyHome && applyLock) delay(500)
 
             if (applyLock) {
-                val uri = pickImage(context, prefs, "lock") ?: return
+                // Si "misma foto" está ON, pasar homeUri para que lock use la misma
+                val uri = pickImage(context, prefs, "lock", sharedUri = homeUri) ?: return
                 val bmp = loadAndRotateBitmap(context, uri) ?: return
                 val scaled = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
                 wm.setBitmap(scaled, null, true, WallpaperManager.FLAG_LOCK)
@@ -66,21 +69,23 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
             prefs.saveNextChangeTime(now + prefs.getInterval() * 60 * 1000L)
         }
 
-        fun pickImage(context: Context, prefs: PreferencesManager, screen: String): Uri? {
-            val useIndependent = if (screen == "lock") prefs.getLockIndependent() else false
-            val pickerMode = if (useIndependent) prefs.getPickerModeLock() else prefs.getPickerMode()
+        fun pickImage(context: Context, prefs: PreferencesManager, screen: String, sharedUri: Uri? = null): Uri? {
+            // Si es lock y "misma foto" está ON, usar la misma URI que home
+            if (screen == "lock" && prefs.getLockIndependent() && sharedUri != null) return sharedUri
+            // Siempre usa la fuente principal
+            val pickerMode = prefs.getPickerMode()
             return when (pickerMode) {
                 "photos" -> {
-                    val photos = if (useIndependent) prefs.getSelectedPhotosLock() else prefs.getSelectedPhotos()
+                    val photos = prefs.getSelectedPhotos()
                     if (photos.isEmpty()) null else Uri.parse(photos.random())
                 }
                 "album" -> {
-                    val bucketId = (if (useIndependent) prefs.getSelectedBucketIdLock() else prefs.getSelectedBucketId()) ?: return null
+                    val bucketId = prefs.getSelectedBucketId() ?: return null
                     val uris = MediaStoreHelper.getPhotosFromAlbum(context, bucketId)
                     if (uris.isEmpty()) null else uris.random()
                 }
                 else -> {
-                    val folderUriStr = (if (useIndependent) prefs.getFolderUriLock() else prefs.getFolderUri()) ?: return null
+                    val folderUriStr = prefs.getFolderUri() ?: return null
                     val docFolder = DocumentFile.fromTreeUri(context, Uri.parse(folderUriStr)) ?: return null
                     val images = docFolder.listFiles().filter { it.isFile && it.type?.startsWith("image/") == true }
                     if (images.isEmpty()) null else images.random().uri

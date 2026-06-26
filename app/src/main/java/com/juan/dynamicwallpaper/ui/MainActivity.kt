@@ -290,42 +290,16 @@ fun WallpaperScreen() {
                     Switch(checked = applyHome, onCheckedChange = { applyHome = it; prefs.saveApplyHome(it) },
                         colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Accent, uncheckedTrackColor = BgSegment))
                 }
-                if (applyLock) {
+                if (applyLock && applyHome) {
                     DwDivider()
                     Row(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
                         horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                         Column {
-                            Text("Fuente independiente", color = TxtPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
-                            Text("Fotos distintas en bloqueo", color = TxtSecond, fontSize = 12.sp)
+                            Text("Misma foto en ambas", color = TxtPrimary, fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                            Text("Inicio y bloqueo usan la misma imagen", color = TxtSecond, fontSize = 12.sp)
                         }
                         Switch(checked = lockIndependent, onCheckedChange = { lockIndependent = it; prefs.saveLockIndependent(it) },
                             colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = Accent, uncheckedTrackColor = BgSegment))
-                    }
-                    if (lockIndependent) {
-                        Column(modifier = Modifier.padding(horizontal = 12.dp).padding(bottom = 12.dp)) {
-                            Row(modifier = Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).background(BgSegment)) {
-                                listOf("folder" to "Carpeta", "photos" to "Fotos", "album" to "Álbum").forEach { (mode, label) ->
-                                    Box(
-                                        modifier = Modifier.weight(1f).clip(RoundedCornerShape(8.dp))
-                                            .background(if (lockPickerMode == mode) Accent else Color.Transparent)
-                                            .clickable { lockPickerMode = mode; prefs.savePickerModeLock(mode) }
-                                            .padding(vertical = 8.dp),
-                                        contentAlignment = Alignment.Center
-                                    ) {
-                                        Text(label, color = if (lockPickerMode == mode) Color.Black else TxtSecond,
-                                            fontSize = 12.sp, fontWeight = if (lockPickerMode == mode) FontWeight.Bold else FontWeight.Medium)
-                                    }
-                                }
-                            }
-                            Spacer(Modifier.height(8.dp))
-                            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(text = lockFolderName.ifEmpty { "Sin fuente seleccionada" }, color = TxtSecond, fontSize = 12.sp, modifier = Modifier.weight(1f))
-                                IconButton(onClick = {
-                                    when (lockPickerMode) { "photos" -> photoPickerLauncherLock.launch(arrayOf("image/*")); "album" -> showAlbumPickerLock = true; else -> folderPickerLauncherLock.launch(null) }
-                                }) { Icon(Icons.Default.ExpandMore, contentDescription = null, tint = TxtSecond) }
-                            }
-                        }
                     }
                 }
             }

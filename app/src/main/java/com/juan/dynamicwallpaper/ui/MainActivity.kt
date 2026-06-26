@@ -103,17 +103,17 @@ fun WallpaperScreen() {
         if (prefs.getIsRunning() && prefs.getInterval() == 0)
             context.startForegroundService(Intent(context, com.juan.dynamicwallpaper.worker.ScreenOffService::class.java))
         scope.launch(Dispatchers.IO) {
-            val wm = WallpaperManager.getInstance(context)
-            val homeDrawable = try { wm.drawable } catch (e: Exception) { null }
-            val homeBmp = (homeDrawable as? BitmapDrawable)?.bitmap ?: drawableToBitmap(homeDrawable)
-            val lockDrawable = try {
-                if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.N)
-                    wm.getWallpaperFile(WallpaperManager.FLAG_LOCK)?.let { pfd ->
-                        android.graphics.drawable.Drawable.createFromStream(
-                            android.os.ParcelFileDescriptor.AutoCloseInputStream(pfd), null)
-                    } else null
-            } catch (e: Exception) { null }
-            val lockBmp = (lockDrawable as? BitmapDrawable)?.bitmap ?: drawableToBitmap(lockDrawable) ?: homeBmp
+            // Intentar cargar desde última URI guardada (más confiable en Samsung)
+            val homeUri = prefs.getLastHomeUri()
+            val lockUri = prefs.getLastLockUri()
+            val homeBmp = homeUri?.let { loadBitmapFromUri(context, Uri.parse(it)) }
+                ?: run {
+                    // Fallback: wallpaper actual del sistema
+                    val wm = WallpaperManager.getInstance(context)
+                    val drawable = try { wm.drawable } catch (e: Exception) { null }
+                    (drawable as? BitmapDrawable)?.bitmap ?: drawableToBitmap(drawable)
+                }
+            val lockBmp = lockUri?.let { loadBitmapFromUri(context, Uri.parse(it)) } ?: homeBmp
             withContext(Dispatchers.Main) {
                 homeBitmap = homeBmp?.asImageBitmap()
                 lockBitmap = lockBmp?.asImageBitmap()

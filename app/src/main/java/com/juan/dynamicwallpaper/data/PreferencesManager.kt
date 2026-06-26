@@ -73,4 +73,10 @@ class PreferencesManager(context: Context) {
     fun saveAutoAdjust(v: Boolean)            = prefs.edit().putBoolean("auto_adjust", v).apply()
     fun getAutoAdjust(): Boolean               = prefs.getBoolean("auto_adjust", false)
 
+    // ── Última foto aplicada (para preview) ──────────────────────────────────
+    fun saveLastHomeUri(uri: String)  = prefs.edit().putString("last_home_uri", uri).apply()
+    fun getLastHomeUri(): String?      = prefs.getString("last_home_uri", null)
+    fun saveLastLockUri(uri: String)  = prefs.edit().putString("last_lock_uri", uri).apply()
+    fun getLastLockUri(): String?      = prefs.getString("last_lock_uri", null)
+
 }

@@ -36,6 +36,7 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
                 val bmp = loadAndRotateBitmap(uri) ?: return@withContext Result.failure()
                 val final = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
                 wm.setBitmap(final, null, true, WallpaperManager.FLAG_SYSTEM)
+                prefs.saveLastHomeUri(uri.toString())
             }
 
             // ── Pantalla de bloqueo ─────────────────────────────────────────
@@ -44,6 +45,7 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
                 val bmp = loadAndRotateBitmap(uri) ?: return@withContext Result.failure()
                 val final = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
                 wm.setBitmap(final, null, true, WallpaperManager.FLAG_LOCK)
+                prefs.saveLastLockUri(uri.toString())
             }
 
             val now = System.currentTimeMillis()

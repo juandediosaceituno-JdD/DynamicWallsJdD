@@ -12,6 +12,7 @@ import androidx.work.WorkerParameters
 import com.juan.dynamicwallpaper.data.MediaStoreHelper
 import com.juan.dynamicwallpaper.data.PreferencesManager
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 
 class WallpaperWorker(private val context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
@@ -34,17 +35,28 @@ class WallpaperWorker(private val context: Context, params: WorkerParameters) : 
             if (applyHome) {
                 val uri = pickImage(prefs, "home") ?: return@withContext Result.failure()
                 val bmp = loadAndRotateBitmap(uri) ?: return@withContext Result.failure()
-                val final = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
-                wm.setBitmap(final, null, true, WallpaperManager.FLAG_SYSTEM)
+                val scaled = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
+                wm.setBitmap(scaled, null, true, WallpaperManager.FLAG_SYSTEM)
                 prefs.saveLastHomeUri(uri.toString())
+                Log.d("WallpaperWorker", "Home aplicado: $uri")
             }
+
+            // Delay entre home y lock — Samsung necesita tiempo para procesar
+            if (applyHome && applyLock) delay(800)
 
             // ── Pantalla de bloqueo ─────────────────────────────────────────
             if (applyLock) {
                 val uri = pickImage(prefs, "lock") ?: return@withContext Result.failure()
                 val bmp = loadAndRotateBitmap(uri) ?: return@withContext Result.failure()
-                val final = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
-                wm.setBitmap(final, null, true, WallpaperManager.FLAG_LOCK)
+                val scaled = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
+                // Samsung: primero FLAG_SYSTEM+FLAG_LOCK juntos, luego solo FLAG_LOCK
+                try {
+                    wm.setBitmap(scaled, null, true, WallpaperManager.FLAG_LOCK)
+                    Log.d("WallpaperWorker", "Lock aplicado vía FLAG_LOCK: $uri")
+                } catch (e: Exception) {
+                    Log.w("WallpaperWorker", "FLAG_LOCK falló, intentando setBitmap genérico: ${e.message}")
+                    wm.setBitmap(scaled)
+                }
                 prefs.saveLastLockUri(uri.toString())
             }
 

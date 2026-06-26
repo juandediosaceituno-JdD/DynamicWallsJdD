@@ -1,179 +1,20 @@
 package com.juan.dynamicwallpaper.worker
 
-import android.app.WallpaperManager
 import android.content.Context
-import android.graphics.*
-import android.net.Uri
+import android.content.Intent
 import android.util.Log
-import androidx.documentfile.provider.DocumentFile
-import androidx.exifinterface.media.ExifInterface
 import androidx.work.CoroutineWorker
 import androidx.work.WorkerParameters
-import com.juan.dynamicwallpaper.data.MediaStoreHelper
-import com.juan.dynamicwallpaper.data.PreferencesManager
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.withContext
 
 class WallpaperWorker(private val context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
-
-    override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
-        try {
-            val prefs       = PreferencesManager(context)
-            val applyHome   = prefs.getApplyHome()
-            val applyLock   = prefs.getApplyLock()
-            val scalingMode = prefs.getScalingMode()
-            val autoAdjust  = prefs.getAutoAdjust()
-
-            if (!applyHome && !applyLock) return@withContext Result.success()
-
-            val wm = WallpaperManager.getInstance(context)
-            val sw = context.resources.displayMetrics.widthPixels
-            val sh = context.resources.displayMetrics.heightPixels
-
-            // ── Pantalla de inicio ──────────────────────────────────────────
-            if (applyHome) {
-                val uri = pickImage(prefs, "home") ?: return@withContext Result.failure()
-                val bmp = loadAndRotateBitmap(uri) ?: return@withContext Result.failure()
-                val scaled = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
-                wm.setBitmap(scaled, null, true, WallpaperManager.FLAG_SYSTEM)
-                prefs.saveLastHomeUri(uri.toString())
-                Log.d("WallpaperWorker", "Home aplicado: $uri")
-            }
-
-            // Delay entre home y lock — Samsung necesita tiempo para procesar
-            if (applyHome && applyLock) delay(800)
-
-            // ── Pantalla de bloqueo ─────────────────────────────────────────
-            if (applyLock) {
-                val uri = pickImage(prefs, "lock") ?: return@withContext Result.failure()
-                val bmp = loadAndRotateBitmap(uri) ?: return@withContext Result.failure()
-                val scaled = scaleBitmap(bmp, sw, sh, scalingMode, autoAdjust)
-                // Samsung: primero FLAG_SYSTEM+FLAG_LOCK juntos, luego solo FLAG_LOCK
-                try {
-                    wm.setBitmap(scaled, null, true, WallpaperManager.FLAG_LOCK)
-                    Log.d("WallpaperWorker", "Lock aplicado vía FLAG_LOCK: $uri")
-                } catch (e: Exception) {
-                    Log.w("WallpaperWorker", "FLAG_LOCK falló, intentando setBitmap genérico: ${e.message}")
-                    wm.setBitmap(scaled)
-                }
-                prefs.saveLastLockUri(uri.toString())
-            }
-
-            val now = System.currentTimeMillis()
-            prefs.saveLastChangedTime(now)
-            prefs.saveNextChangeTime(now + prefs.getInterval() * 60 * 1000L)
-            Log.d("WallpaperWorker", "Wallpaper cambiado OK")
+    override suspend fun doWork(): Result {
+        return try {
+            Log.d("WallpaperWorker", "Disparando WallpaperApplyService")
+            context.startForegroundService(Intent(context, WallpaperApplyService::class.java))
             Result.success()
         } catch (e: Exception) {
-            Log.e("WallpaperWorker", "Error", e)
+            Log.e("WallpaperWorker", "Error iniciando service", e)
             Result.retry()
         }
     }
-
-    private fun pickImage(prefs: PreferencesManager, screen: String): Uri? {
-        // Si la pantalla no tiene fuente independiente, usa la fuente principal
-        val useIndependent = if (screen == "lock") prefs.getLockIndependent() else false
-        val pickerMode = if (useIndependent) prefs.getPickerModeLock() else prefs.getPickerMode()
-
-        return when (pickerMode) {
-            "photos" -> {
-                val photos = if (useIndependent) prefs.getSelectedPhotosLock() else prefs.getSelectedPhotos()
-                if (photos.isEmpty()) null else Uri.parse(photos.random())
-            }
-            "album" -> {
-                val bucketId = (if (useIndependent) prefs.getSelectedBucketIdLock() else prefs.getSelectedBucketId())
-                    ?: return null
-                val uris = MediaStoreHelper.getPhotosFromAlbum(context, bucketId)
-                if (uris.isEmpty()) null else uris.random()
-            }
-            else -> { // folder
-                val folderUriStr = (if (useIndependent) prefs.getFolderUriLock() else prefs.getFolderUri())
-                    ?: return null
-                val folderUri = Uri.parse(folderUriStr)
-                val docFolder = DocumentFile.fromTreeUri(context, folderUri) ?: return null
-                val images = docFolder.listFiles().filter { it.isFile && it.type?.startsWith("image/") == true }
-                if (images.isEmpty()) null else images.random().uri
-            }
-        }
-    }
-
-    private fun loadAndRotateBitmap(uri: Uri): Bitmap? {
-        return try {
-            val rotation = context.contentResolver.openInputStream(uri)?.use { stream ->
-                val exif = ExifInterface(stream)
-                when (exif.getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
-                    ExifInterface.ORIENTATION_ROTATE_90  -> 90f
-                    ExifInterface.ORIENTATION_ROTATE_180 -> 180f
-                    ExifInterface.ORIENTATION_ROTATE_270 -> 270f
-                    else -> 0f
-                }
-            } ?: 0f
-            val bitmap = context.contentResolver.openInputStream(uri)?.use {
-                BitmapFactory.decodeStream(it)
-            } ?: return null
-            if (rotation != 0f) {
-                Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, Matrix().apply { postRotate(rotation) }, true)
-            } else bitmap
-        } catch (e: Exception) { null }
-    }
-
-    private fun scaleBitmap(src: Bitmap, tw: Int, th: Int, mode: String, autoAdjust: Boolean): Bitmap {
-        val source = if (autoAdjust) autoAdjustBitmap(src) else src
-        val result = Bitmap.createBitmap(tw, th, Bitmap.Config.ARGB_8888)
-        val canvas = android.graphics.Canvas(result)
-        canvas.drawColor(Color.BLACK)
-        val paint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-        when (mode) {
-            "FILL" -> {
-                val scale = maxOf(tw.toFloat() / source.width, th.toFloat() / source.height)
-                val sw = (source.width * scale).toInt()
-                val sh = (source.height * scale).toInt()
-                // Centrado simple — sin zoom adicional
-                canvas.drawBitmap(Bitmap.createScaledBitmap(source, sw, sh, true), (tw - sw) / 2f, (th - sh) / 2f, paint)
-            }
-            "FIT" -> {
-                val scale = minOf(tw.toFloat() / source.width, th.toFloat() / source.height)
-                val sw = (source.width * scale).toInt(); val sh = (source.height * scale).toInt()
-                canvas.drawBitmap(Bitmap.createScaledBitmap(source, sw, sh, true), (tw - sw) / 2f, (th - sh) / 2f, paint)
-            }
-            "STRETCH" -> canvas.drawBitmap(Bitmap.createScaledBitmap(source, tw, th, true), 0f, 0f, paint)
-            "NONE"    -> canvas.drawBitmap(source, (tw - source.width) / 2f, (th - source.height) / 2f, paint)
-        }
-        return result
-    }
-
-    // ── Autoajuste de brillo ──────────────────────────────────────────────────
-    private fun autoAdjustBitmap(src: Bitmap): Bitmap {
-        val pixels = IntArray(src.width * src.height)
-        src.getPixels(pixels, 0, src.width, 0, 0, src.width, src.height)
-
-        // Calcular brillo promedio
-        var totalBrightness = 0L
-        for (pixel in pixels) {
-            val r = Color.red(pixel); val g = Color.green(pixel); val b = Color.blue(pixel)
-            totalBrightness += (0.299 * r + 0.587 * g + 0.114 * b).toLong()
-        }
-        val avgBrightness = totalBrightness / pixels.size
-
-        // Solo ajustar si está muy oscura (<80) o muy clara (>180)
-        val targetBrightness = 128
-        if (avgBrightness in 80..180) return src
-
-        val factor = targetBrightness.toFloat() / avgBrightness.coerceAtLeast(1).toFloat()
-        val clampedFactor = factor.coerceIn(0.5f, 2.0f)
-
-        val adjusted = IntArray(pixels.size)
-        for (i in pixels.indices) {
-            val r = (Color.red(pixels[i]) * clampedFactor).toInt().coerceIn(0, 255)
-            val g = (Color.green(pixels[i]) * clampedFactor).toInt().coerceIn(0, 255)
-            val b = (Color.blue(pixels[i]) * clampedFactor).toInt().coerceIn(0, 255)
-            adjusted[i] = Color.argb(Color.alpha(pixels[i]), r, g, b)
-        }
-
-        val result = src.copy(Bitmap.Config.ARGB_8888, true)
-        result.setPixels(adjusted, 0, src.width, 0, 0, src.width, src.height)
-        return result
-    }
-
 }

@@ -30,6 +30,10 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name=".worker.WallpaperApplyService"
+            android:exported="false" />
+
         <receiver
             android:name=".worker.UnlockReceiver"
             android:exported="true">

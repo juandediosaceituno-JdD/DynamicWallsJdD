@@ -532,9 +532,22 @@ fun loadFolderThumbnail(context: Context, folderUriString: String): Bitmap? = tr
 } catch (e: Exception) { null }
 
 fun loadBitmapFromUri(context: Context, uri: Uri): Bitmap? = try {
-    context.contentResolver.openInputStream(uri)?.use { stream ->
+    val rotation = context.contentResolver.openInputStream(uri)?.use { stream ->
+        val exif = androidx.exifinterface.media.ExifInterface(stream)
+        when (exif.getAttributeInt(androidx.exifinterface.media.ExifInterface.TAG_ORIENTATION,
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_NORMAL)) {
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_90  -> 90f
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_180 -> 180f
+            androidx.exifinterface.media.ExifInterface.ORIENTATION_ROTATE_270 -> 270f
+            else -> 0f
+        }
+    } ?: 0f
+    val bitmap = context.contentResolver.openInputStream(uri)?.use { stream ->
         BitmapFactory.decodeStream(stream, null, BitmapFactory.Options().apply { inSampleSize = 4 })
-    }
+    } ?: return null
+    if (rotation != 0f)
+        Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, Matrix().apply { postRotate(rotation) }, true)
+    else bitmap
 } catch (e: Exception) { null }
 
 fun drawableToBitmap(drawable: android.graphics.drawable.Drawable?): Bitmap? {
